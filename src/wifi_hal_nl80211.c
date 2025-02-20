@@ -16253,7 +16253,7 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
 #ifdef CMXB7_PORT
     .set_chan_dfs_state = nl80211_set_channel_dfs_state,
 #endif
-#if HOSTAPD_VERSION == 210
+#if HOSTAPD_VERSION >= 210
     .get_sta_auth_type = wifi_drv_get_sta_auth_type,
 #endif
 #if HOSTAPD_VERSION >= 210 // 2.10
@@ -16420,7 +16420,7 @@ const struct wpa_driver_ops g_wpa_supplicant_driver_nl80211_ops = {
 #ifdef CMXB7_PORT
     .set_chan_dfs_state = nl80211_set_channel_dfs_state,
 #endif
-#if HOSTAPD_VERSION == 210
+#if HOSTAPD_VERSION >= 210
     .get_sta_auth_type = wifi_drv_get_sta_auth_type,
 #endif
 };
