@@ -16050,6 +16050,7 @@ int wifi_drv_get_sta_auth_type(void *priv, const u8 *addr, int auth_key,int fram
     wifi_device_callbacks_t *callbacks;
     int band;
     int key_mgmt;
+    wifi_hal_dbg_print("%s:%d started \n", __func__, __LINE__);
     if(!addr || !priv) {
         wifi_hal_error_print("%s:%d station/ies info is null\n", __func__, __LINE__);
         return RETURN_ERR;
@@ -16084,10 +16085,11 @@ int wifi_drv_get_sta_auth_type(void *priv, const u8 *addr, int auth_key,int fram
 
     for (int i = 0; i < callbacks->num_stamode_cbs; i++) {
         if (callbacks->stamode_cb[i] != NULL) {
+	    wifi_hal_dbg_print("%s:%d called\n", __func__, __LINE__);
             callbacks->stamode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str),key_mgmt,frame_type,band);
         }
     }
-
+    wifi_hal_dbg_print("%s:%d done \n", __func__, __LINE__);
     return RETURN_OK;
 }
 
