@@ -15372,11 +15372,9 @@ int wifi_drv_get_sta_auth_type(void *priv, const u8 *addr, int auth_key,int fram
         return -1;
     }
 
-    if( vap->u.bss_info.security.mode == wifi_security_mode_wpa3_compatibility ) {
-        for (int i = 0; i < callbacks->num_stamode_cbs; i++) {
-            if (callbacks->stamode_cb[i] != NULL) {
-                callbacks->stamode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str),key_mgmt,frame_type,band);
-            }
+    for (int i = 0; i < callbacks->num_stamode_cbs; i++) {
+        if (callbacks->stamode_cb[i] != NULL) {
+            callbacks->stamode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str),key_mgmt,frame_type,band);
         }
     }
 
