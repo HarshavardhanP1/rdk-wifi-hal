@@ -72,7 +72,7 @@
 #define AP_UNABLE_TO_HANDLE_ADDITIONAL_ASSOCIATIONS 17
 #define OVS_MODULE "/sys/module/openvswitch"
 #define ONEWIFI_TESTSUITE_TMPFILE "/tmp/onewifi_testsuite_configured"
-
+#define KEY_MGMT_SAE_EXT 67108864
 #define MAX_MBSSID_INTERFACES 8
 
 #ifdef WIFI_EMULATOR_CHANGE
@@ -15331,6 +15331,58 @@ static u8* wifi_drv_get_rnr_colocation_ie(void *priv, u8 *eid, size_t *current_l
     return eid;
 }
 
+int wifi_drv_get_sta_auth_type(void *priv, const u8 *addr, int auth_key,int frame_type)
+{
+    wifi_interface_info_t *interface;
+    wifi_vap_info_t *vap;
+    mac_address_t sta;
+    mac_addr_str_t  sta_mac_str;
+    wifi_device_callbacks_t *callbacks;
+    int band;
+    int key_mgmt;
+    if(!addr || !priv) {
+        wifi_hal_error_print("%s:%d station/ies info is null\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+    if (auth_key == WPA_KEY_MGMT_PSK) {
+        key_mgmt = 2;
+    }
+    else if (auth_key == WPA_KEY_MGMT_SAE) {
+        key_mgmt = 8;
+    }
+    else if (auth_key == KEY_MGMT_SAE_EXT) {
+        key_mgmt = 24;
+    }
+    else {
+        key_mgmt = -1;
+    }
+    interface = (wifi_interface_info_t *)priv;
+
+    if(interface == NULL) {
+        wifi_hal_error_print("%s:%d interface is null\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    vap = &interface->vap_info;
+    memcpy(sta, addr, sizeof(mac_address_t));
+    band = vap->radio_index;
+    callbacks = get_hal_device_callbacks();
+
+    if (callbacks == NULL) {
+        return -1;
+    }
+
+    if( vap->u.bss_info.security.mode == wifi_security_mode_wpa3_compatibility ) {
+        for (int i = 0; i < callbacks->num_stamode_cbs; i++) {
+            if (callbacks->stamode_cb[i] != NULL) {
+                callbacks->stamode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str),key_mgmt,frame_type,band);
+            }
+        }
+    }
+
+    return RETURN_OK;
+}
+
 static size_t wifi_drv_mbssid_get_active_interface_num(wifi_radio_info_t *radio)
 {
     wifi_interface_info_t *interface_iter;
@@ -16206,6 +16258,7 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
     .get_mbssid_tx_bss = wifi_drv_get_mbssid_tx_bss,
     .get_mbssid_len = wifi_drv_get_mbssid_len,
     .get_mbssid_ie = wifi_drv_get_mbssid_ie,
+    .get_sta_auth_type = wifi_drv_get_sta_auth_type,
     .get_mbssid_config = wifi_drv_get_mbssid_config,
 #endif
 };
@@ -16362,6 +16415,9 @@ const struct wpa_driver_ops g_wpa_supplicant_driver_nl80211_ops = {
     .radius_fallback_failover = wifi_drv_send_radius_fallback_and_failover,
 #ifdef CMXB7_PORT
     .set_chan_dfs_state = nl80211_set_channel_dfs_state,
+#endif
+#if HOSTAPD_VERSION >= 210
+    .get_sta_auth_type = wifi_drv_get_sta_auth_type,
 #endif
 };
 #endif //CONFIG_WIFI_EMULATOR

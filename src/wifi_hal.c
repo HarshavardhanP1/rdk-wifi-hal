@@ -3851,6 +3851,20 @@ void wifi_hal_apDisassociatedDevice_callback_register(wifi_apDisassociatedDevice
     callbacks->num_disassoc_cbs++;
 }
 
+void wifi_hal_stamode_callback_register(wifi_stamode_callback func)
+{
+    wifi_device_callbacks_t *callbacks;
+
+    callbacks = get_hal_device_callbacks();
+
+    if (callbacks == NULL || callbacks->num_stamode_cbs> MAX_REGISTERED_CB_NUM) {
+        return;
+    }
+
+    callbacks->stamode_cb[callbacks->num_stamode_cbs] = func;
+    callbacks->num_stamode_cbs++;
+}
+
 void wifi_hal_radius_eap_failure_callback_register(wifi_radiusEapFailure_callback func)
 {
     wifi_device_callbacks_t *callbacks;
