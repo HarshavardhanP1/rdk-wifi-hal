@@ -559,7 +559,7 @@ int update_security_config(wifi_vap_security_t *sec, struct hostapd_bss_config *
             conf->wpa_key_mgmt = WPA_KEY_MGMT_PSK;
 #if HOSTAPD_VERSION >= 210
             conf->wpa_key_mgmt_rsno = WPA_KEY_MGMT_SAE;
-            conf->sae_pwe = 1;
+            conf->sae_pwe = 2;
 #endif /* HOSTAPD_VERSION >= 210 */
             conf->auth_algs = WPA_AUTH_ALG_SAE | WPA_AUTH_ALG_SHARED | WPA_AUTH_ALG_OPEN;
             break;
