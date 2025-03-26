@@ -276,6 +276,7 @@ static void nl80211_authenticate_event(wifi_interface_info_t *interface, struct 
 
 static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, struct nlattr **tb)
 {
+    u16 status = 0;
     struct nlattr *frame, *addr, *cookie, *ack, *attr;
     union wpa_event_data event;
     const struct ieee80211_hdr *hdr;
@@ -348,6 +349,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     event.tx_status.data = nla_data(frame);
     event.tx_status.data_len = nla_len(frame);
     event.tx_status.ack = ack != NULL;
+    const struct ieee80211_mgmt *mgmt = (const struct ieee80211_mgmt *)event.tx_status.data;
 #if HOSTAPD_VERSION >= 211
     event.tx_status.link_id = NL80211_DRV_LINK_ID_NA;
 #endif /* HOSTAPD_VERSION >= 211 */
@@ -368,10 +370,36 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
         case WLAN_FC_STYPE_ASSOC_RESP:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_ASSOC_RSP;
+            wifi_hal_dbg_print("%s:%d: Received assoc response frame from: %s\n", __func__, __LINE__,
+                           to_mac_str(sta, sta_mac_str));
+
+            if (callbacks->num_statuscode_cbs == 0) {
+                break;
+            }
+            for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
+                if (callbacks->statuscode_cb[i] != NULL) {
+                    status = le_to_host16(mgmt->u.assoc_resp.status_code);
+                    wifi_hal_dbg_print("%s:%d:assocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.assoc_resp.status_code),status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                }
+            }
             break;
 
         case WLAN_FC_STYPE_REASSOC_RESP:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_REASSOC_RSP;
+            wifi_hal_dbg_print("%s:%d: Received Reassoc response frame from: %s\n", __func__, __LINE__,
+                           to_mac_str(sta, sta_mac_str));
+
+            if (callbacks->num_statuscode_cbs == 0) {
+                break;
+            }
+            for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
+                if (callbacks->statuscode_cb[i] != NULL) {
+                    status = le_to_host16(mgmt->u.reassoc_resp.status_code);
+                    wifi_hal_dbg_print("%s:%d:Reassocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.reassoc_resp.status_code),status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                }
+            }
             break;
 
         case WLAN_FC_STYPE_DISASSOC:
