@@ -128,6 +128,8 @@ typedef struct {
     wifi_apMaxClientRejection_callback      max_cli_rejection_cb;
     wifi_apDisassociatedDevice_callback     disassoc_cb[MAX_REGISTERED_CB_NUM];
     unsigned int                            num_disassoc_cbs;
+    wifi_apStatusCode_callback              statuscode_cb[MAX_REGISTERED_CB_NUM];
+    unsigned int                            num_statuscode_cbs;
     unsigned int                            num_radius_eap_cbs;
     wifi_radiusEapFailure_callback          radius_eap_cb[MAX_REGISTERED_CB_NUM];
     unsigned int                            num_radius_fallback_failover_cbs;
