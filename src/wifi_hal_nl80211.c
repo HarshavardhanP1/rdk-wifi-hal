@@ -1728,7 +1728,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
     unsigned int total_len=0;
     bool send_mgmt_to_char_dev = false;
 #endif
-    wifi_hal_dbg_print("%s:%d:start:reason code %d\n", __func__, __LINE__,reason);
+    wifi_hal_dbg_print("%s:%d:hey started:reason code %d\n", __func__, __LINE__,reason);
     u16 reasoncode;
     if (mgmt == NULL) {
         return -1;
@@ -1741,11 +1741,14 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
     if (memcmp(mgmt->da, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, mgmt->sa, sizeof(mac_address_t));
         dir = wifi_direction_uplink;
+        wifi_hal_dbg_print("%s:%d:start:uplink\n", __func__, __LINE__);
     } else if (memcmp(mgmt->sa, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, mgmt->da, sizeof(mac_address_t));
         dir = wifi_direction_downlink;
+        wifi_hal_dbg_print("%s:%d:start:downlink\n", __func__, __LINE__);
     } else if (memcmp(mgmt->da, bmac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, mgmt->sa, sizeof(mac_address_t));
+	wifi_hal_dbg_print("%s:%d:start:bmac uplink\n", __func__, __LINE__);
         dir = wifi_direction_uplink;
     } else {
         to_mac_str(interface->mac, interface_mac_str);
@@ -1784,6 +1787,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         }
 
         if (callbacks->steering_event_callback != 0) {
+	    wifi_hal_dbg_print("%s:%d:start:handle_auth req event for bm \n", __func__, __LINE__);
             handle_auth_req_event_for_bm(interface, sta, sig_dbm);
         }
 #ifdef NL80211_ACL
@@ -1795,8 +1799,10 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
 #endif
         remove_station_from_other_interfaces(interface, sta);
 #ifdef WIFI_EMULATOR_CHANGE
+	wifi_hal_dbg_print("%s:%d:setting send mgmt to chardev to true \n", __func__, __LINE__);
         send_mgmt_to_char_dev = true;
 #endif
+	wifi_hal_dbg_print("%s:%d:auth req: break \n", __func__, __LINE__);
         break;
 
     case WLAN_FC_STYPE_ASSOC_REQ:
@@ -1816,12 +1822,15 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         }
 
         if (callbacks->steering_event_callback != 0) {
+	    wifi_hal_dbg_print("%s:%d:start:handle_assoc_req_event for bm \n", __func__, __LINE__);
             handle_assoc_req_event_for_bm(interface, mgmt, len, sta);
         }
         remove_station_from_other_interfaces(interface, sta);
 #ifdef WIFI_EMULATOR_CHANGE
+	wifi_hal_dbg_print("%s:%d:setting send mgmt in assoc \n", __func__, __LINE__);
         send_mgmt_to_char_dev = true;
 #endif
+	wifi_hal_dbg_print("%s:%d:assoc req:break\n", __func__, __LINE__);
         break;
 
     case WLAN_FC_STYPE_REASSOC_REQ:
@@ -1842,11 +1851,14 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
 
         remove_station_from_other_interfaces(interface, sta);
 #ifdef WIFI_EMULATOR_CHANGE
+	wifi_hal_dbg_print("%s:%d:setting send mgmt in reassoc \n", __func__, __LINE__);
         send_mgmt_to_char_dev = true;
 #endif
+	wifi_hal_dbg_print("%s:%d:reassoc :break\n", __func__, __LINE__);
         break;
 
     case WLAN_FC_STYPE_ASSOC_RESP:
+	wifi_hal_dbg_print("%s:%d:start:assoc resp\n", __func__, __LINE__);
         mgmt_type = WIFI_MGMT_FRAME_TYPE_ASSOC_RSP;
         break;
 
@@ -1920,7 +1932,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         station = ap_get_sta(&interface->u.ap.hapd, sta);
         if (station) {
 	    wifi_hal_dbg_print("%s:%d:reasoncode is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.disassoc.reason_code));
-            wifi_hal_dbg_print("station disassocreason in disassoc frame is %d\n", station->disconnect_reason_code);
+            wifi_hal_dbg_print("process_frame_mgmt station disassocreason in disassoc frame is %d\n", station->disconnect_reason_code);
 #if !defined(PLATFORM_LINUX)
             if (station->disconnect_reason_code == WLAN_RADIUS_GREYLIST_REJECT) {
                 reason = station->disconnect_reason_code;
@@ -1943,10 +1955,11 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                     reasoncode = le_to_host16(mgmt->u.disassoc.reason_code);
                 }
                 callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reasoncode);
-		wifi_hal_dbg_print("%s:%d:disassoc callback is called \n", __func__, __LINE__);
+		wifi_hal_dbg_print("%s:%d:disassoc callback is called and done \n", __func__, __LINE__);
             }
         }
         if (callbacks->steering_event_callback != 0) {
+	    wifi_hal_dbg_print("%s:%d:start:handle_disconnect_event_bm \n", __func__, __LINE__);
             handle_disconnect_event_for_bm(interface, sta, mgmt_type, reason);
         }
 #ifdef WIFI_EMULATOR_CHANGE
@@ -1958,10 +1971,10 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         mgmt_type = WIFI_MGMT_FRAME_TYPE_DEAUTH;
 
         if (len >= IEEE80211_HDRLEN + sizeof(mgmt->u.deauth)) {
-            wifi_hal_info_print("%s:%d: interface:%s received deauth frame from:%s to:%s sc:%d "
+            wifi_hal_info_print("%s:%d: interface:%s received deauth frame from:%s to:%s disassoc sc:%d deauth sc:%d "
                                 "len:%d reason:%d\n",
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, sta_mac_str),
-                to_mac_str(mgmt->da, frame_da_str), le_to_host16(mgmt->u.disassoc.reason_code), len,
+                to_mac_str(mgmt->da, frame_da_str), le_to_host16(mgmt->u.disassoc.reason_code), le_to_host16(mgmt->u.deauth.reason_code), len,
                 reason);
         } else {
             wifi_hal_info_print("%s:%d: interface:%s received deauth frame from:%s to:%s len:%d "
@@ -1971,12 +1984,13 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         }
 
         if (callbacks->num_apDeAuthEvent_cbs == 0) {
+	    wifi_hal_dbg_print("%s:%d:start:num_appDeauthEventcbs \n", __func__, __LINE__);
             break;
         }
         for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
             if (callbacks->apDeAuthEvent_cb[i] != NULL) {
                 if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.deauth)) {
-                    wifi_hal_dbg_print("handle_deauth - too short payload (len=%lu)",(unsigned long) len);
+                    wifi_hal_dbg_print("process_frame_mgmt handle_deauth - too short payload (len=%lu)",(unsigned long) len);
                     reasoncode = reason;
                 }
                 else {
@@ -1991,7 +2005,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         station = ap_get_sta(&interface->u.ap.hapd, sta);
         if (station) {
 	    wifi_hal_dbg_print("%s:%d:reasoncode is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.deauth.reason_code));
-            wifi_hal_dbg_print("station deauthreason in deauth frame is %d\n", station->disconnect_reason_code);
+            wifi_hal_dbg_print("process_frame_mgmt first station disconnect reason code in deauth frame is %d deauth reason : %d disassoc reason :%d \n", station->disconnect_reason_code, station->deauth_reason, station->disassoc_reason);
 #if !defined(PLATFORM_LINUX)
             if (station->disconnect_reason_code == WLAN_RADIUS_GREYLIST_REJECT) {
                 reason = station->disconnect_reason_code;
@@ -2002,6 +2016,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         pthread_mutex_unlock(&g_wifi_hal.hapd_lock);
 
         if (station) {
+	    wifi_hal_dbg_print("process_frame_mgmt second station disconnect reason code in deauth frame is %d deauth reason : %d disassoc reason :%d \n", station->disconnect_reason_code, station->deauth_reason, station->disassoc_reason);
             for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
                 if (callbacks->disassoc_cb[i] != NULL) {
                     if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.disassoc)) {
@@ -2021,15 +2036,18 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                 interface->name, to_mac_str(sta, sta_mac_str));
         }
         if (callbacks->steering_event_callback != 0) {
+	    wifi_hal_dbg_print("%s:%d:handling disconnect event for bm in deauth \n", __func__, __LINE__);
             handle_disconnect_event_for_bm(interface, sta, mgmt_type, reason);
         }
 #ifdef WIFI_EMULATOR_CHANGE
         send_mgmt_to_char_dev = true;
 #endif
+	wifi_hal_dbg_print("%s:%d:deauth:break \n", __func__, __LINE__);
         break;
 
     default:
         drop = true;
+	wifi_hal_dbg_print("%s:%d:setting drop to true \n", __func__, __LINE__);
         break;
     }
 
@@ -2049,19 +2067,24 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
             mgmt_frame.data = (unsigned char *)mgmt;
 
 #ifdef WIFI_HAL_VERSION_3_PHASE2
+	wifi_hal_dbg_print("%s:%d:calling halversion 3 phase2 callback\n", __func__, __LINE__);
         callbacks->mgmt_frame_rx_callback(vap->vap_index, &mgmt_frame);
 #else
 #if defined(RDK_ONEWIFI) && (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(TCHCBRV2_PORT) || defined(SCXER10_PORT) || defined(VNTXER5_PORT))
+	wifi_hal_dbg_print("%s:%d:calling onewifi frame_rx_callback with sig_dbm,phy_rate \n", __func__, __LINE__);
         callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)mgmt, len, mgmt_type, dir, sig_dbm, phy_rate);
 #else
+	wifi_hal_dbg_print("%s:%d:calling frame_rx_callback with out sig_dbm,phy_rate\n", __func__, __LINE__);
         callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)mgmt, len, mgmt_type, dir);
 #endif
 #endif
 
         for (unsigned int i = 0; i < hooks->num_hooks; i++) {
             if (hooks->frame_hooks_fn[i](vap->vap_index, mgmt_type) == NL_SKIP) {
+		wifi_hal_dbg_print("%s:%d:hey frame hook returning -1  for mgmt_type:%d \n", __func__, __LINE__, mgmt_type);
                 return -1;
             }
+	    wifi_hal_dbg_print("%s:%d:hey frame hook for mgmt_type:%d \n", __func__, __LINE__, mgmt_type);
         }
     }
 
@@ -2081,7 +2104,9 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         event.rx_mgmt.link_id = NL80211_DRV_LINK_ID_NA;
 #endif /* HOSTAPD_VERSION >= 211 */
         pthread_mutex_lock(&g_wifi_hal.hapd_lock);
+	wifi_hal_dbg_print("%s:%d:hey frame is forwarding \n", __func__, __LINE__);
         wpa_supplicant_event(&interface->u.ap.hapd, EVENT_RX_MGMT, &event);
+	wifi_hal_dbg_print("%s:%d:hey frame is forwarded \n", __func__, __LINE__);
         pthread_mutex_unlock(&g_wifi_hal.hapd_lock);
     }
 
@@ -2133,7 +2158,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
     }
 
 #endif
-
+    wifi_hal_dbg_print("%s:%d:hey exit \n", __func__, __LINE__);
     return -1;
 }
 
@@ -2150,7 +2175,7 @@ int process_mgmt_frame(struct nl_msg *msg, void *arg)
 #ifdef CMXB7_PORT
     int snr = 0;
 #endif
-
+    wifi_hal_dbg_print("%s:%d:hey started \n", __func__, __LINE__);
     gnlh = nlmsg_data(nlmsg_hdr(msg));
     nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
@@ -2213,14 +2238,16 @@ int process_mgmt_frame(struct nl_msg *msg, void *arg)
     }
 
     if (process_frame_mgmt(interface, mgmt, reason, sig_dbm, snr, phy_rate, len) < 0) {
+	wifi_hal_dbg_print("%s:%d:hey exit for cmxb7 \n", __func__, __LINE__);
         return NL_SKIP;
     }
 #else
     if (process_frame_mgmt(interface, mgmt, reason, sig_dbm, phy_rate, len) < 0) {
+	wifi_hal_dbg_print("%s:%d:hey exit for others \n", __func__, __LINE__);
         return NL_SKIP;
     }
 #endif
-
+    wifi_hal_dbg_print("%s:%d:hey exit \n", __func__, __LINE__);
     return NL_SKIP;
 }
 
