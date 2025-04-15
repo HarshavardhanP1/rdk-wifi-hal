@@ -281,13 +281,14 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     const struct ieee80211_hdr *hdr;
     mac_addr_str_t  sta_mac_str;
     u16 reason = 0;
+    u16 status = 0;
     u16 fc;
     struct sta_info *station = NULL;
     wifi_device_callbacks_t *callbacks = NULL;
     wifi_steering_event_t steering_evt;
     wifi_frame_t mgmt_frame;
     int sig_dbm = -100;
-#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined (TCHCBRV2_PORT) || defined(SCXER10_PORT) || defined(VNTXER5_PORT)|| defined(TARGET_GEMINI7_2))
+#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined (TCHCBRV2_PORT) || defined(SCXER10_PORT) || defined(VNTXER5_PORT))
     int phy_rate = 60;
 #endif
 
@@ -296,7 +297,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     wifi_direction_t dir;
     mac_address_t   sta, bmac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     callbacks = get_hal_device_callbacks();
-
+    wifi_hal_dbg_print("%s:%d:hey start \n", __func__, __LINE__);
     if ((frame = tb[NL80211_ATTR_FRAME]) == NULL) {
         wifi_hal_dbg_print("%s:%d: frame attribute not present\n", __func__, __LINE__);
         return;
@@ -318,7 +319,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     if (tb[NL80211_ATTR_RX_SIGNAL_DBM]) {
         sig_dbm = nla_get_u32(tb[NL80211_ATTR_RX_SIGNAL_DBM]);
     }
-#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined (TCHCBRV2_PORT) || defined(VNTXER5_PORT)|| defined(TARGET_GEMINI7_2))
+#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined (TCHCBRV2_PORT) || defined(VNTXER5_PORT))
     if (tb[NL80211_ATTR_RX_PHY_RATE_INFO]) {
         phy_rate = nla_get_u32(tb[NL80211_ATTR_RX_PHY_RATE_INFO]);
     }
@@ -329,12 +330,15 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
     if (memcmp(hdr->addr1, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr2, sizeof(mac_address_t));
+        wifi_hal_dbg_print("%s:%d:hey uplink \n", __func__, __LINE__);
         dir = wifi_direction_uplink;
     } else if (memcmp(hdr->addr2, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr1, sizeof(mac_address_t));
+        wifi_hal_dbg_print("%s:%d:hey downlink \n", __func__, __LINE__);
         dir = wifi_direction_downlink;
     } else if (memcmp(hdr->addr1, bmac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr2, sizeof(mac_address_t));
+        wifi_hal_dbg_print("%s:%d:hey uplink in bmac \n", __func__, __LINE__);
         dir = wifi_direction_uplink;
     } else {
         wifi_hal_dbg_print("%s:%d: unknown interface... dropping\n", __func__, __LINE__);
@@ -373,7 +377,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 #if HOSTAPD_VERSION >= 211
     event.tx_status.link_id = NL80211_DRV_LINK_ID_NA;
 #endif /* HOSTAPD_VERSION >= 211 */
-
+   const struct ieee80211_mgmt *mgmt = (const struct ieee80211_mgmt *)event.tx_status.data;
    if (event.tx_status.type  == WLAN_FC_TYPE_MGMT &&
      (event.tx_status.stype == WLAN_FC_STYPE_AUTH ||
         event.tx_status.stype == WLAN_FC_STYPE_ASSOC_RESP ||
@@ -386,14 +390,43 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
         switch(event.tx_status.stype) {
          case WLAN_FC_STYPE_AUTH:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH;
+            wifi_hal_dbg_print("%s:%d:auth status code is %d and status is %d seq:%d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status,le_to_host16(mgmt->u.auth.auth_transaction));
             break;
 
         case WLAN_FC_STYPE_ASSOC_RESP:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_ASSOC_RSP;
+            wifi_hal_dbg_print("%s:%d: Received assoc response frame from: %s\n", __func__, __LINE__,
+                           to_mac_str(sta, sta_mac_str));
+
+            if (callbacks->num_statuscode_cbs == 0) {
+                wifi_hal_dbg_print("%s:%d: num_status code cbs\n", __func__, __LINE__);
+                break;
+            }
+            for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
+                if (callbacks->statuscode_cb[i] != NULL) {
+                    status = le_to_host16(mgmt->u.assoc_resp.status_code);
+                    wifi_hal_dbg_print("%s:%d:assocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.assoc_resp.status_code),status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                }
+            }
             break;
 
         case WLAN_FC_STYPE_REASSOC_RESP:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_REASSOC_RSP;
+            wifi_hal_dbg_print("%s:%d: Received Reassoc response frame from: %s\n", __func__, __LINE__,
+                           to_mac_str(sta, sta_mac_str));
+
+            if (callbacks->num_statuscode_cbs == 0) {
+                wifi_hal_dbg_print("%s:%d: numstatuscode cbs \n", __func__, __LINE__);
+                break;
+            }
+            for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
+                if (callbacks->statuscode_cb[i] != NULL) {
+                    status = le_to_host16(mgmt->u.reassoc_resp.status_code);
+                    wifi_hal_dbg_print("%s:%d:Reassocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.reassoc_resp.status_code),status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                }
+            }
             break;
 
         case WLAN_FC_STYPE_DISASSOC:
@@ -501,12 +534,15 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             mgmt_frame.len = event.tx_status.data_len;
             mgmt_frame.data = (unsigned char *)event.tx_status.data; 
 #ifdef WIFI_HAL_VERSION_3_PHASE2
+            wifi_hal_dbg_print("%s:%d: hal version 3 phase2 \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, &mgmt_frame);
 #else
-#if defined(RDK_ONEWIFI) && (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined (TCHCBRV2_PORT) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2))
+#if defined(RDK_ONEWIFI) && (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined (TCHCBRV2_PORT) || defined(VNTXER5_PORT))
+            wifi_hal_dbg_print("%s:%d: onewifi frame rx callback \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)event.tx_status.data,
                 event.tx_status.data_len, mgmt_type, dir, sig_dbm, phy_rate);
 #else
+            wifi_hal_dbg_print("%s:%d: frame rx callback \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)event.tx_status.data,
                 event.tx_status.data_len, mgmt_type, dir);
 #endif
@@ -514,8 +550,11 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
         }
     }
     pthread_mutex_lock(&g_wifi_hal.hapd_lock);
+    wifi_hal_dbg_print("%s:%d: supplicant event is getting called\n", __func__, __LINE__);
     wpa_supplicant_event(&interface->u.ap.hapd, EVENT_TX_STATUS, &event);
+    wifi_hal_dbg_print("%s:%d: wpa supplicant is done\n", __func__, __LINE__);
     pthread_mutex_unlock(&g_wifi_hal.hapd_lock);
+    wifi_hal_dbg_print("%s:%d: exit \n", __func__, __LINE__);
 }
 
 static void nl80211_new_scan_results_event(wifi_interface_info_t *interface, struct nlattr **tb)
