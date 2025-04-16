@@ -3978,7 +3978,7 @@ void wifi_hal_newApAssociatedDevice_callback_register(wifi_newApAssociatedDevice
     callbacks->num_assoc_cbs++;
 }
 
-void wifi_hal_apDeAuthEvent_callback_register(wifi_apDeAuthEvent_callback func)
+void wifi_hal_apDeAuthEvent_callback_register(wifi_ApDeAuthEvent_callback func)
 {
     wifi_device_callbacks_t *callbacks;
 
@@ -4018,7 +4018,7 @@ void wifi_hal_ap_max_client_rejection_callback_register(wifi_apMaxClientRejectio
     callbacks->max_cli_rejection_cb = func;
 }
 
-void wifi_hal_apDisassociatedDevice_callback_register(wifi_apDisassociatedDevice_callback func)
+void wifi_hal_apDisassociatedDevice_callback_register(wifi_ApDisassociatedDevice_callback func)
 {
     wifi_device_callbacks_t *callbacks;
 
