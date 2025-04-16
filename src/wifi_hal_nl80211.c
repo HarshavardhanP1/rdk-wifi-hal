@@ -10916,7 +10916,7 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
 
     for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
         if (callbacks->disassoc_cb[i] != NULL) {
-            callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(addr, mac_str), 0);
+            callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(addr, mac_str),to_mac_str(addr, mac_str),0,0);
         }
     }
 #endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
@@ -10961,7 +10961,7 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
-            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), reason);
+            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), to_mac_str(addr, mac_str), 0, reason);
         }
     }
 
@@ -11025,7 +11025,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
-            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), reason);
+            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str),to_mac_str(addr, mac_str),0, reason);
         }
     }
 #endif
