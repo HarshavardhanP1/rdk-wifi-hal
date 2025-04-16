@@ -1954,7 +1954,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                 else {
                     reasoncode = le_to_host16(mgmt->u.disassoc.reason_code);
                 }
-                callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reasoncode);
+                callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, reasoncode);
 		wifi_hal_dbg_print("%s:%d:disassoc callback is called and done \n", __func__, __LINE__);
             }
         }
@@ -1996,7 +1996,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                 else {
                     reasoncode = le_to_host16(mgmt->u.deauth.reason_code);
                 }
-                callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reasoncode);
+                callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, reasoncode);
                 wifi_hal_dbg_print("%s:%d:deauth event callback is called\n", __func__, __LINE__);
             }
         }
@@ -2026,7 +2026,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                     else {
                         reasoncode = le_to_host16(mgmt->u.disassoc.reason_code);
                     }
-                    callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reasoncode);
+                    callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, reasoncode);
                     wifi_hal_dbg_print("%s:%d:reasoncode is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.disassoc.reason_code));
                     wifi_hal_dbg_print("%s:%d:calling disassoc callback\n", __func__, __LINE__);
                 }
