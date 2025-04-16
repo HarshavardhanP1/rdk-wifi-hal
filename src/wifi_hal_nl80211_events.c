@@ -459,7 +459,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
             for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
                 if (callbacks->disassoc_cb[i] != NULL) {
-                    callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reason);
+                    callbacks->disassoc_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, reason);
                 }
             }
 
@@ -504,7 +504,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
             for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
                 if (callbacks->apDeAuthEvent_cb[i] != NULL) {
-                   callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reason);
+                   callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, reason);
                 }
             }
 
