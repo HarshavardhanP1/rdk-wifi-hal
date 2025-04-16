@@ -280,6 +280,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     union wpa_event_data event;
     const struct ieee80211_hdr *hdr;
     mac_addr_str_t  sta_mac_str;
+    mac_addr_str_t  frame_da_str;
     u16 reason = 0;
     u16 status = 0;
     u16 fc;
