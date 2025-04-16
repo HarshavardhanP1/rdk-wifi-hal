@@ -391,6 +391,17 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
          case WLAN_FC_STYPE_AUTH:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH;
             wifi_hal_dbg_print("%s:%d:auth status code is %d and status is %d seq:%d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status,le_to_host16(mgmt->u.auth.auth_transaction));
+            if (callbacks->num_statuscode_cbs == 0) {
+                wifi_hal_dbg_print("%s:%d: num_status code cbs\n", __func__, __LINE__);
+                break;
+            }
+            for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
+                if (callbacks->statuscode_cb[i] != NULL) {
+                    status = le_to_host16(mgmt->u.auth.status_code);
+                    wifi_hal_dbg_print("%s:%d:auth status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, status);
+                }
+            }
             break;
 
         case WLAN_FC_STYPE_ASSOC_RESP:
@@ -406,7 +417,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
                 if (callbacks->statuscode_cb[i] != NULL) {
                     status = le_to_host16(mgmt->u.assoc_resp.status_code);
                     wifi_hal_dbg_print("%s:%d:assocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.assoc_resp.status_code),status);
-                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, status);
                 }
             }
             break;
@@ -424,7 +435,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
                 if (callbacks->statuscode_cb[i] != NULL) {
                     status = le_to_host16(mgmt->u.reassoc_resp.status_code);
                     wifi_hal_dbg_print("%s:%d:Reassocrp status code is %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.reassoc_resp.status_code),status);
-                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), status);
+                    callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(mgmt->sa, sta_mac_str), to_mac_str(mgmt->da, frame_da_str), mgmt_type, status);
                 }
             }
             break;
