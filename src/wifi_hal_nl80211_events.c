@@ -390,7 +390,7 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
         switch(event.tx_status.stype) {
          case WLAN_FC_STYPE_AUTH:
-            mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH;
+            mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH_RSP;
             wifi_hal_dbg_print("%s:%d:auth status code is %d and status is %d seq:%d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status,le_to_host16(mgmt->u.auth.auth_transaction));
             if (callbacks->num_statuscode_cbs == 0) {
                 wifi_hal_dbg_print("%s:%d: num_status code cbs\n", __func__, __LINE__);
