@@ -2026,6 +2026,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                     else {
                         reasoncode = le_to_host16(mgmt->u.disassoc.reason_code);
                     }
+		    mgmt_type = WIFI_MGMT_FRAME_TYPE_DISASSOC;
                     callbacks->disassoc_cb[i](vap->vap_index,to_mac_str(mgmt->sa,sta_mac_str),to_mac_str(mgmt->da,frame_da_str),mgmt_type,reasoncode);
                     wifi_hal_dbg_print("%s:%d:reasoncode is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.disassoc.reason_code));
                     wifi_hal_dbg_print("%s:%d:calling disassoc callback\n", __func__, __LINE__);
@@ -10916,11 +10917,13 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
 
     for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
         if (callbacks->disassoc_cb[i] != NULL) {
-            callbacks->disassoc_cb[i](vap->vap_index,to_mac_str(addr,mac_str),to_mac_str(addr,mac_str),0,0);
+            wifi_hal_dbg_print("%s:%d: called disassoc_cb %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+            callbacks->disassoc_cb[i](vap->vap_index,to_mac_str(addr,mac_str),to_mac_str(addr,mac_str),10,reason);
         }
     }
 #endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
     if (drv->device_ap_sme) {
+	wifi_hal_dbg_print("%s:%d: ap_Sme %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 0, reason);
     }
 
