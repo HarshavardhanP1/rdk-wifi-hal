@@ -1997,7 +1997,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                     reasoncode = le_to_host16(mgmt->u.deauth.reason_code);
                 }
                 callbacks->apDeAuthEvent_cb[i](vap->vap_index,to_mac_str(mgmt->sa,sta_mac_str),to_mac_str(mgmt->da,frame_da_str),mgmt_type,reasoncode);
-                wifi_hal_dbg_print("%s:%d:deauth event callback is called\n", __func__, __LINE__);
+                wifi_hal_dbg_print("%s:%d:deauth event callback is called callbacks:%d \n", __func__, __LINE__, callbacks->num_apDeAuthEvent_cbs);
             }
         }
 
@@ -10910,7 +10910,7 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
 
     wifi_hal_dbg_print("%s:%d: Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 
-//#if defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)
+#if defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)
     wifi_device_callbacks_t *callbacks;
 
     callbacks = get_hal_device_callbacks();
@@ -10921,7 +10921,7 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
             callbacks->disassoc_cb[i](vap->vap_index,to_mac_str(addr,mac_str),to_mac_str(addr,mac_str),8,reason);
         }
     }
-//#endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
+#endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
     if (drv->device_ap_sme) {
 	wifi_hal_dbg_print("%s:%d: ap_Sme %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 0, reason);
@@ -10965,6 +10965,7 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
             callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), to_mac_str(addr, mac_str), 0, reason);
+            wifi_hal_dbg_print("%s:%d: deauth callback is called %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         }
     }
 
@@ -11029,6 +11030,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
+            wifi_hal_dbg_print("%s:%d: deauth callback Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
             callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str),to_mac_str(addr, mac_str),5,reason);
         }
     }
