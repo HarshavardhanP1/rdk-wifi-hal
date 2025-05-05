@@ -47,7 +47,9 @@
 #include "ap/dfs.h"
 #include <sys/wait.h>
 #include <linux/if_ether.h>
+#ifdef __GLIBC__
 #include <netinet/ether.h>
+#endif
 #include <linux/filter.h>
 #include <fcntl.h>
 
@@ -555,7 +557,7 @@ static int handle_rx_wnm_notification_req(wifi_interface_info_t *interface,
     return WIFI_HAL_UNSUPPORTED;
 }
 
-#if !defined(PLATFORM_LINUX)
+#if !defined(PLATFORM_LINUX) || defined(_PLATFORM_BANANAPI_R4_)
 int handle_wnm_action_frame(wifi_interface_info_t *interface, const mac_address_t sta, struct ieee80211_mgmt *mgmt, size_t len)
 {
     u8 action;
@@ -780,7 +782,7 @@ static void wifi_set_disassoc_timer(struct hostapd_data *hapd, struct sta_info *
                 ap_handle_timer, hapd, sta);
 }
 
-#if !defined(PLATFORM_LINUX)
+#if !defined(PLATFORM_LINUX) || defined(_PLATFORM_BANANAPI_R4_)
 /* Implementation is based on wnm_send_bss_tm_req() from wnm_ap.c */
 int wifi_wnm_send_bss_tm_req(wifi_interface_info_t *interface, struct sta_info *sta,
             u8 dialog_token, u8 req_mode, int disassoc_timer, u8 valid_int,
@@ -1427,7 +1429,7 @@ int wifi_hal_parse_rm_beacon_request(unsigned int apIndex, char *buff, size_t le
     return 0;
 }
 
-#if !defined(PLATFORM_LINUX)
+#if !defined(PLATFORM_LINUX) || defined(_PLATFORM_BANANAPI_R4_)
 int handle_rrm_action_frame(wifi_interface_info_t *interface, const mac_address_t sta,
                     const struct ieee80211_mgmt *mgmt, size_t len, int ssi_signal)
 {
