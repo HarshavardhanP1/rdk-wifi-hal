@@ -11153,13 +11153,13 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
 
     for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
         if (callbacks->disassoc_cb[i] != NULL) {
-            wifi_hal_dbg_print("%s:%d: called disassoc_cb %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+            //wifi_hal_dbg_print("%s:%d: called disassoc_cb %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
             callbacks->disassoc_cb[i](vap->vap_index,to_mac_str(addr,mac_str),to_mac_str(addr,mac_str),8,reason);
         }
     }
 #endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
     if (drv->device_ap_sme) {
-	wifi_hal_dbg_print("%s:%d: ap_Sme %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+	//wifi_hal_dbg_print("%s:%d: ap_Sme %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 0, reason);
     }
 
@@ -11200,8 +11200,8 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
-            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), to_mac_str(addr, mac_str), 0, reason);
-            wifi_hal_dbg_print("%s:%d: deauth callback is called %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+            callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), to_mac_str(addr, mac_str),5,reason);
+            //wifi_hal_dbg_print("%s:%d: deauth callback is called %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         }
     }
 
@@ -11255,7 +11255,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
           HOSTAPD_MODE_IEEE80211AD) {
         /* Deauthentication is not used in DMG/IEEE 802.11ad;
            * disassociate the STA instead. */
-	wifi_hal_dbg_print("%s:%d: disassoc func called %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+	//wifi_hal_dbg_print("%s:%d: disassoc func called %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_drv_sta_disassoc(priv, own_addr, addr, reason);
     }
 #if 0
@@ -11266,13 +11266,13 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
-            wifi_hal_dbg_print("%s:%d: deauth callback Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+            //wifi_hal_dbg_print("%s:%d: deauth callback Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
             callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str),to_mac_str(addr, mac_str),5,reason);
         }
     }
 #endif
     if (drv->device_ap_sme) {
-	wifi_hal_dbg_print("%s:%d: ap_sme is true %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+	//wifi_hal_dbg_print("%s:%d: ap_sme is true %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 1, reason);
     }
 
@@ -11283,7 +11283,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
     memcpy(mgmt.sa, own_addr, ETH_ALEN);
     memcpy(mgmt.bssid, own_addr, ETH_ALEN);
     mgmt.u.deauth.reason_code = host_to_le16(reason);
-    wifi_hal_info_print("%s:%d: Send drv mlme: client mac:%s reason_code:%d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+    //wifi_hal_info_print("%s:%d: Send drv mlme: client mac:%s reason_code:%d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 #ifdef HOSTAPD_2_11 //2.11
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0, 0, 0, 0);
