@@ -102,7 +102,7 @@ int nl80211_send_and_recv(struct nl_msg *msg,
              int (*valid_finish_handler)(struct nl_msg *, void *),
              void *valid_finish_data);
 
-#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
 struct phy_info_arg {
     u16 *num_modes;
     struct hostapd_hw_modes *modes;
@@ -2256,7 +2256,7 @@ int process_mgmt_frame(struct nl_msg *msg, void *arg)
     if (tb[NL80211_ATTR_RX_SIGNAL_DBM]) {
         sig_dbm = nla_get_u32(tb[NL80211_ATTR_RX_SIGNAL_DBM]);
     }
-#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(TCHCBRV2_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined(VNTXER5_PORT))
+#if  (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(TCHCBRV2_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2))
     if (tb[NL80211_ATTR_RX_PHY_RATE_INFO]) {
         phy_rate = nla_get_u32(tb[NL80211_ATTR_RX_PHY_RATE_INFO]);
     }
@@ -5072,7 +5072,7 @@ static int phy_info_iftype(struct hostapd_hw_modes *mode,
 
     return NL_OK;
 }
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
 
 static int phy_info_band(wifi_radio_info_t *radio, struct nlattr *nl_band)
 {
@@ -5208,14 +5208,14 @@ static void wiphy_info_mbssid(struct wpa_driver_capa *cap, struct nlattr *attr)
     wifi_hal_dbg_print("%s:%d mbssid: max interfaces %u, max profile periodicity %u", __func__,
         __LINE__, cap->mbssid_max_interfaces, cap->ema_max_periodicity);
 }
-#endif /* defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) */
+#endif /* defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || TARGET_GEMINI7_2 */
 
 static int wiphy_dump_handler(struct nl_msg *msg, void *arg)
 {
     wifi_radio_info_t *radio;
 #if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
     struct wpa_driver_capa *capa;
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
     struct nlattr *tb[NL80211_ATTR_MAX + 1];
     struct genlmsghdr *gnlh;
     //unsigned int *cmd;
@@ -5611,7 +5611,7 @@ static int wiphy_dump_handler(struct nl_msg *msg, void *arg)
     }
 #endif /* CONFIG_IEEE80211BE */
 #endif /* HOSTAPD_VERSION >= 211 */
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
     if (tb[NL80211_ATTR_WDEV]) {
         radio->dev_id = nla_get_u64(tb[NL80211_ATTR_WDEV]);
     }
@@ -5916,7 +5916,7 @@ int interface_info_handler(struct nl_msg *msg, void *arg)
     return NL_SKIP;
 }
 
-#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
 static int phy_info_rates_get_hw_features(struct hostapd_hw_modes *mode, struct nlattr *tb)
 {
     static struct nla_policy rate_policy[NL80211_BITRATE_ATTR_MAX + 1] = {
@@ -5960,7 +5960,7 @@ static int phy_info_rates_get_hw_features(struct hostapd_hw_modes *mode, struct 
 
     return NL_OK;
 }
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
 
 static int phy_info_handler(struct nl_msg *msg, void *arg)
 {
@@ -6291,7 +6291,7 @@ static u32 get_nl80211_protocol_features(int nl_id)
 
     return 0;
 }
-#endif // VNTXER5_PORT || TCXB7_PORT || TCXB8_PORT || XB10_PORT || SCXER10_PORT
+#endif // VNTXER5_PORT || TCXB7_PORT || TCXB8_PORT || XB10_PORT || SCXER10_PORT || TARGET_GEMINI7_2
 
 int init_nl80211()
 {
@@ -10177,7 +10177,7 @@ int wifi_drv_update_connection_params(
     return 0;
 }
 
-#if defined(CONFIG_HW_CAPABILITIES) || defined(CMXB7_PORT) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(CMXB7_PORT) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
 int wifi_drv_get_ext_capab(void *priv, enum wpa_driver_if_type type,
                  const u8 **ext_capa, const u8 **ext_capa_mask,
                  unsigned int *ext_capa_len)
@@ -10261,7 +10261,7 @@ static int wifi_drv_get_mld_capab(void *priv, enum wpa_driver_if_type type,
 }
 #endif /* CONFIG_IEEE80211BE */
 #endif /* HOSTAPD_VERSION >= 211 */
-#endif /* CONFIG_HW_CAPABILITIES || CMXB7_PORT || VNTXER5_PORT */
+#endif /* CONFIG_HW_CAPABILITIES || CMXB7_PORT || VNTXER5_PORT || TARGET_GEMINI7_2 */
 
 int wifi_drv_configure_data_frame_filters(void *priv, u32 filter_flags)
 {
@@ -10841,7 +10841,7 @@ int wifi_drv_send_action(void *priv,
     }
 
     wifi_hal_dbg_print("%s:%d: nl80211: Send Action frame (ifindex=%d, "
-                       "freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)",
+                       "freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)\n",
         __func__, __LINE__, interface->index, freq, wait_time, no_cck, offchanok);
 
     buf = (unsigned char*) calloc(sizeof(struct ieee80211_hdr) + data_len, sizeof(unsigned char));
@@ -10957,6 +10957,7 @@ int wifi_drv_send_mlme(void *priv, const u8 *data,
 #endif
     int res, interface_freq;
     mac_addr_str_t src_mac_str, dst_mac_str;
+    int offchanok = 1;
 
     char country[8];
     wifi_device_callbacks_t *callbacks;
@@ -11013,6 +11014,11 @@ int wifi_drv_send_mlme(void *priv, const u8 *data,
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, src_mac_str),
                 to_mac_str(mgmt->da, dst_mac_str), le_to_host16(mgmt->u.deauth.reason_code));
             break;
+        case WLAN_FC_STYPE_ACTION:
+            wifi_hal_dbg_print("%s:%d: interface:%s send action frame from:%s to:%s cat:%d\n",
+                __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, src_mac_str),
+                to_mac_str(mgmt->da, dst_mac_str), mgmt->u.action.category);
+            break;
         }
     }
 
@@ -11057,9 +11063,14 @@ int wifi_drv_send_mlme(void *priv, const u8 *data,
           use_cookie = 0;
 send_frame_cmd:
 
+    if (freq == 0 || ((int)freq == interface->u.ap.iface.freq && interface->beacon_set) ||
+        ieee80211_is_dfs(freq, interface->u.ap.iface.current_mode, 1)) {
+        offchanok = 0;
+    }
+
     //wifi_hal_dbg_print("nl80211: send_mlme -> send_frame_cmd\n");
     res = nl80211_send_frame_cmd(interface, freq, wait, data, data_len,
-              use_cookie, 0, noack, csa_offs, csa_offs_len);
+              use_cookie, offchanok, noack, csa_offs, csa_offs_len);
 
     return res;
 }
@@ -12219,7 +12230,7 @@ fail:
     return ret;
 }
 
-#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
 static int cw2ecw(unsigned int cw)
 {
     int bit;
@@ -13087,12 +13098,12 @@ static int nl80211_set_regulatory_flags(struct phy_info_arg *results)
 
     return nl80211_send_and_recv(msg, nl80211_get_reg, results, NULL, NULL);
 }
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
 
 struct hostapd_hw_modes *
 wifi_drv_get_hw_feature_data(void *priv, u16 *num_modes, u16 *flags, u8 *dfs_domain)
 {
-#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
     struct nl_msg *msg; 
     struct phy_info_arg result = {
         .num_modes = num_modes,
@@ -13105,7 +13116,7 @@ wifi_drv_get_hw_feature_data(void *priv, u16 *num_modes, u16 *flags, u8 *dfs_dom
     *num_modes = 0;
     *flags = 0; 
     *dfs_domain = 0;
-#if !defined(VNTXER5_PORT)
+#if !(defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2))
     msg = nl80211_drv_cmd_msg(g_wifi_hal.nl80211_id, NULL, NLM_F_DUMP, NL80211_CMD_GET_WIPHY);
     nla_put_flag(msg, NL80211_ATTR_SPLIT_WIPHY_DUMP);
     if (msg == NULL) {
@@ -13147,7 +13158,7 @@ wifi_drv_get_hw_feature_data(void *priv, u16 *num_modes, u16 *flags, u8 *dfs_dom
         nl80211_dump_chan_list(modes, *num_modes);
         return modes;
     }
-#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT
+#endif // CONFIG_HW_CAPABILITIES || VNTXER5_PORT || TARGET_GEMINI7_2
     return NULL;
 }
 
@@ -15111,6 +15122,35 @@ int wifi_drv_set_ap_wps_ie(void *priv, const struct wpabuf *beacon,
     return 0;
 }
 
+static void wifi_hal_wps_cancel_on_other_radios(wifi_interface_info_t *interface)
+{
+    wifi_vap_type_t vap_type;
+    wifi_radio_info_t *radio_iter;
+    wifi_interface_info_t *interface_iter;
+
+    if (wifi_hal_get_vap_interface_type(interface->vap_info.vap_name, vap_type) < 0) {
+        wifi_hal_error_print("%s:%d failed to get vap type for %s\n", __func__, __LINE__,
+            interface->vap_info.vap_name);
+        return;
+    }
+
+    for (unsigned int i = 0; i < g_wifi_hal.num_radios; i++) {
+        if ((radio_iter = get_radio_by_rdk_index(i)) == NULL) {
+            continue;
+        }
+
+        if ((interface_iter = wifi_hal_get_vap_interface_by_type(radio_iter, vap_type)) == NULL) {
+            continue;
+        }
+
+        if (interface_iter == interface) {
+            continue;
+        }
+
+        wifi_hal_nl80211_wps_cancel(interface_iter->vap_info.vap_index);
+    }
+}
+
 int wifi_drv_wps_event_notify_cb(void *ctx, unsigned int event, void *data)
 {
     wifi_interface_info_t *interface;
@@ -15127,6 +15167,10 @@ int wifi_drv_wps_event_notify_cb(void *ctx, unsigned int event, void *data)
             wifi_hal_dbg_print("%s:%d: Enter wps event vap->vap_index:%d\n", __func__, __LINE__, vap->vap_index);
             event_data.vap_index = vap->vap_index;
         }
+    }
+
+    if (event == WPS_EV_SUCCESS) {
+        wifi_hal_wps_cancel_on_other_radios(interface);
     }
 
     event_data.event = event;
@@ -16978,14 +17022,14 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
     .set_bssid_blacklist = wifi_drv_set_bssid_blacklist,
 #endif /* CONFIG_DRIVER_NL80211_QCA */
     .configure_data_frame_filters = wifi_drv_configure_data_frame_filters,
-#if defined(CONFIG_HW_CAPABILITIES) || defined(CMXB7_PORT) || defined(VNTXER5_PORT)
+#if defined(CONFIG_HW_CAPABILITIES) || defined(CMXB7_PORT) || defined(VNTXER5_PORT) || defined(TARGET_GEMINI7_2)
     .get_ext_capab = wifi_drv_get_ext_capab,
 #if HOSTAPD_VERSION >= 211
 #ifdef CONFIG_IEEE80211BE
     .get_mld_capab = wifi_drv_get_mld_capab,
 #endif /* CONFIG_IEEE80211BE */
 #endif /* HOSTAPD_VERSION >= 211 */
-#endif /* CONFIG_HW_CAPABILITIES || CMXB7_PORT || VNTXER5_PORT */
+#endif /* CONFIG_HW_CAPABILITIES || CMXB7_PORT || VNTXER5_PORT || TARGET_GEMINI7_2 */
     .update_connect_params = wifi_drv_update_connection_params,
     .send_external_auth_status = wifi_drv_send_external_auth_status,
     .set_4addr_mode = wifi_drv_set_4addr_mode,
