@@ -314,7 +314,6 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
     wifi_direction_t dir;
     mac_address_t   sta, bmac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     callbacks = get_hal_device_callbacks();
-    wifi_hal_dbg_print("%s:%d:hey start \n", __func__, __LINE__);
     if ((frame = tb[NL80211_ATTR_FRAME]) == NULL) {
         wifi_hal_dbg_print("%s:%d: frame attribute not present\n", __func__, __LINE__);
         return;
@@ -347,15 +346,12 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
     if (memcmp(hdr->addr1, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr2, sizeof(mac_address_t));
-        wifi_hal_dbg_print("%s:%d:hey uplink \n", __func__, __LINE__);
         dir = wifi_direction_uplink;
     } else if (memcmp(hdr->addr2, interface->mac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr1, sizeof(mac_address_t));
-        wifi_hal_dbg_print("%s:%d:hey downlink \n", __func__, __LINE__);
         dir = wifi_direction_downlink;
     } else if (memcmp(hdr->addr1, bmac, sizeof(mac_address_t)) == 0) {
         memcpy(sta, hdr->addr2, sizeof(mac_address_t));
-        wifi_hal_dbg_print("%s:%d:hey uplink in bmac \n", __func__, __LINE__);
         dir = wifi_direction_uplink;
     } else {
         wifi_hal_dbg_print("%s:%d: unknown interface... dropping\n", __func__, __LINE__);
@@ -407,17 +403,11 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
         switch(event.tx_status.stype) {
          case WLAN_FC_STYPE_AUTH:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH_RSP;
-            //wifi_hal_dbg_print("%s:%d:auth status code is %d and status is %d seq:%d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status,le_to_host16(mgmt->u.auth.auth_transaction));
-            if (callbacks->num_statuscode_cbs == 0) {
-                wifi_hal_dbg_print("%s:%d: num_status code cbs\n", __func__, __LINE__);
-                break;
-            }
+
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
                     status = le_to_host16(mgmt->u.auth.status_code);
-                    //wifi_hal_dbg_print("%s:%d:auth status code is calling %d and status is %d \n", __func__, __LINE__,le_to_host16(mgmt->u.auth.status_code),status);
                     callbacks->statuscode_cb[i](vap->vap_index, to_mac_str(hdr->addr2, sta_mac_str), to_mac_str(hdr->addr1, frame_da_str), mgmt_type, status);
-                    wifi_hal_dbg_print("%s:%d: status code callback is called for auth\n", __func__, __LINE__);
                 }
             }
             break;
@@ -427,10 +417,6 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             wifi_hal_dbg_print("%s:%d: Received assoc response frame from: %s\n", __func__, __LINE__,
                            to_mac_str(sta, sta_mac_str));
 
-            if (callbacks->num_statuscode_cbs == 0) {
-                wifi_hal_dbg_print("%s:%d: num_status code cbs\n", __func__, __LINE__);
-                break;
-            }
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
                     status = le_to_host16(mgmt->u.assoc_resp.status_code);
@@ -446,10 +432,6 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             wifi_hal_dbg_print("%s:%d: Received Reassoc response frame from: %s\n", __func__, __LINE__,
                            to_mac_str(sta, sta_mac_str));
 
-            if (callbacks->num_statuscode_cbs == 0) {
-                wifi_hal_dbg_print("%s:%d: numstatuscode cbs \n", __func__, __LINE__);
-                break;
-            }
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
                     status = le_to_host16(mgmt->u.reassoc_resp.status_code);
@@ -565,15 +547,12 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             mgmt_frame.len = event.tx_status.data_len;
             mgmt_frame.data = (unsigned char *)event.tx_status.data; 
 #ifdef WIFI_HAL_VERSION_3_PHASE2
-            //wifi_hal_dbg_print("%s:%d: hal version 3 phase2 \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, &mgmt_frame);
 #else
 #if defined(RDK_ONEWIFI) && (defined(TCXB7_PORT) || defined(CMXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined (TCHCBRV2_PORT) || defined(VNTXER5_PORT))
-            //wifi_hal_dbg_print("%s:%d: onewifi frame rx callback \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)event.tx_status.data,
                 event.tx_status.data_len, mgmt_type, dir, sig_dbm, phy_rate);
 #else
-            //wifi_hal_dbg_print("%s:%d: frame rx callback \n", __func__, __LINE__);
             callbacks->mgmt_frame_rx_callback(vap->vap_index, sta, (unsigned char *)event.tx_status.data,
                 event.tx_status.data_len, mgmt_type, dir);
 #endif
@@ -581,11 +560,8 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
         }
     }
     pthread_mutex_lock(&g_wifi_hal.hapd_lock);
-    //wifi_hal_dbg_print("%s:%d: supplicant event is getting called\n", __func__, __LINE__);
     wpa_supplicant_event(&interface->u.ap.hapd, EVENT_TX_STATUS, &event);
-    //wifi_hal_dbg_print("%s:%d: wpa supplicant is done\n", __func__, __LINE__);
     pthread_mutex_unlock(&g_wifi_hal.hapd_lock);
-    wifi_hal_dbg_print("%s:%d: exit \n", __func__, __LINE__);
 }
 
 static void nl80211_new_scan_results_event(wifi_interface_info_t *interface, struct nlattr **tb)
