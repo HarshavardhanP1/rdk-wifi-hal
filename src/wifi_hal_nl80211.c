@@ -16374,6 +16374,36 @@ int     wifi_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, int reas
     return 0;
 }
 
+int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
+{
+    wifi_interface_info_t *interface;
+    wifi_vap_info_t *vap;
+    mac_address_t sta;
+    mac_addr_str_t  sta_mac_str;
+    if(!addr || !priv) {
+        wifi_hal_error_print("%s:%d addr or interface info is null\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+    interface = (wifi_interface_info_t *)priv;
+    vap = &interface->vap_info;
+    memcpy(sta, addr, sizeof(mac_address_t));
+    wifi_device_callbacks_t *callbacks;
+
+    callbacks = get_hal_device_callbacks();
+
+    if (callbacks == NULL) {
+	wifi_hal_error_print("%s:%d callbacks is null return -1\n", __func__, __LINE__);
+        return -1;
+    }
+
+    for (int i = 0; i < callbacks->num_radius_eap_status_cbs; i++) {
+        if (callbacks->radius_eap_status_cb[i] != NULL) {
+            callbacks->radius_eap_status_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reason);
+        }
+    }
+    return 0;
+}
+
 int    wifi_drv_send_radius_eap_failure(void *priv, int failure_code)
 {
     wifi_interface_info_t *interface;
@@ -19285,6 +19315,7 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
 #endif // CONFIG_VENDOR_COMMANDS
 #if !defined(PLATFORM_LINUX)
     .radius_eap_failure = wifi_drv_send_radius_eap_failure,
+    .radius_eap_status = wifi_drv_send_radius_eap_status,
     .radius_fallback_failover = wifi_drv_send_radius_fallback_and_failover,
 #endif // CONFIG_VENDOR_COMMANDS
 #ifdef CMXB7_PORT
@@ -19461,6 +19492,7 @@ const struct wpa_driver_ops g_wpa_supplicant_driver_nl80211_ops = {
 #endif // CONFIG_USE_HOSTAP_BTM_PATCH
 #endif // CONFIG_VENDOR_COMMANDS
     .radius_eap_failure = wifi_drv_send_radius_eap_failure,
+    .radius_eap_status = wifi_drv_send_radius_eap_status,
     .radius_fallback_failover = wifi_drv_send_radius_fallback_and_failover,
 #ifdef CMXB7_PORT
     .set_chan_dfs_state = nl80211_set_channel_dfs_state,
