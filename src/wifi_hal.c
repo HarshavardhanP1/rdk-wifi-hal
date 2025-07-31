@@ -4270,6 +4270,19 @@ void wifi_hal_apStatusCode_callback_register(wifi_apStatusCode_callback func)
     callbacks->num_statuscode_cbs++;
 }
 
+void wifi_hal_radius_eap_status_callback_register(wifi_radiusEapStatus_callback func)
+{
+    wifi_device_callbacks_t *callbacks;
+
+    callbacks = get_hal_device_callbacks();
+
+    if (callbacks == NULL || callbacks->num_radius_eap_status_cbs >= MAX_REGISTERED_CB_NUM) {
+        return;
+    }
+    callbacks->radius_eap_status_cb[callbacks->num_radius_eap_status_cbs] = func;
+    callbacks->num_radius_eap_status_cbs++;
+}
+
 void wifi_hal_radius_eap_failure_callback_register(wifi_radiusEapFailure_callback func)
 {
     wifi_device_callbacks_t *callbacks;
