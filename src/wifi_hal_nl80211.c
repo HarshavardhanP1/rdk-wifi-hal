@@ -15163,7 +15163,7 @@ int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
     for (int i = 0; i < callbacks->num_radius_eap_status_cbs; i++) {
         if (callbacks->radius_eap_status_cb[i] != NULL) {
             callbacks->radius_eap_status_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), reason);
-            wifi_hal_info_print("%s:%d radius_eap_status_cb callback is called for mac:%d vap index:%d reason:%d \n", __func__, __LINE__, to_mac_str(sta, sta_mac_str), vap->vap_index, reason);
+            wifi_hal_info_print("%s:%d radius_eap_status_cb callback is called for mac:%s vap index:%d reason:%d \n", __func__, __LINE__, to_mac_str(sta, sta_mac_str), vap->vap_index, reason);
         }
     }
     return 0;
