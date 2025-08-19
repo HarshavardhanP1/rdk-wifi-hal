@@ -2062,15 +2062,15 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
 
     case WLAN_FC_STYPE_DISASSOC:
         mgmt_type = WIFI_MGMT_FRAME_TYPE_DISASSOC;
-
+         wifi_hal_dbg_print("%s:%d: Harsha Enter disassoc \n", __func__, __LINE__);
         if (len >= IEEE80211_HDRLEN + sizeof(mgmt->u.disassoc)) {
-            wifi_hal_info_print("%s:%d: interface:%s received disassoc frame from:%s to:%s sc:%d "
+            wifi_hal_info_print("%s:%d: Harsha interface:%s received disassoc frame from:%s to:%s sc:%d "
                                 "len:%d reason:%d\n",
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, sta_mac_str),
                 to_mac_str(mgmt->da, frame_da_str), le_to_host16(mgmt->u.disassoc.reason_code), len,
                 reason);
         } else {
-            wifi_hal_info_print("%s:%d: interface:%s received disassoc frame from:%s to:%s len:%d "
+            wifi_hal_info_print("%s:%d: Harsha interface:%s received disassoc frame from:%s to:%s len:%d "
                                 "reason:%d\n",
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, sta_mac_str),
                 to_mac_str(mgmt->da, frame_da_str), len, reason);
@@ -2079,11 +2079,11 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         pthread_mutex_lock(&g_wifi_hal.hapd_lock);
         station = ap_get_sta(&interface->u.ap.hapd, sta);
         if (station) {
-            wifi_hal_dbg_print("station disassocreason in disassoc frame is %d\n",
+            wifi_hal_dbg_print("Harsha station disassocreason in disassoc frame is %d\n",
                 station->disconnect_reason_code);
             ap_free_sta(&interface->u.ap.hapd, station);
         } else {
-            wifi_hal_dbg_print("%s:%d: interface:%s sta %s not found\n", __func__, __LINE__,
+            wifi_hal_dbg_print("%s:%d: Harsha interface:%s sta %s not found\n", __func__, __LINE__,
                 interface->name, to_mac_str(sta, sta_mac_str));
         }
         pthread_mutex_unlock(&g_wifi_hal.hapd_lock);
@@ -2091,7 +2091,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
             bool frame_too_short = (len < IEEE80211_HDRLEN + sizeof(mgmt->u.disassoc));
             if (frame_too_short) {
-                wifi_hal_dbg_print("handle_disassoc - too short payload (len=%lu)\n",
+                wifi_hal_dbg_print("Harsha handle_disassoc - too short payload (len=%lu)\n",
                     (unsigned long)len);
                 reasoncode = reason;
             }
@@ -2114,19 +2114,20 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
 #ifdef WIFI_EMULATOR_CHANGE
         send_mgmt_to_char_dev = true;
 #endif
+		wifi_hal_dbg_print("%s:%d: Harsha Exit disassoc \n", __func__, __LINE__);
         break;
 
     case WLAN_FC_STYPE_DEAUTH:
         mgmt_type = WIFI_MGMT_FRAME_TYPE_DEAUTH;
-
+        wifi_hal_dbg_print("%s:%d: Harsha Enter deauth \n", __func__, __LINE__);
         if (len >= IEEE80211_HDRLEN + sizeof(mgmt->u.deauth)) {
-            wifi_hal_info_print("%s:%d: interface:%s received deauth frame from:%s to:%s disassoc sc:%d deauth sc:%d "
+            wifi_hal_info_print("%s:%d: Harsha interface:%s received deauth frame from:%s to:%s disassoc sc:%d deauth sc:%d "
                                 "len:%d reason:%d\n",
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, sta_mac_str),
                 to_mac_str(mgmt->da, frame_da_str), le_to_host16(mgmt->u.disassoc.reason_code), le_to_host16(mgmt->u.deauth.reason_code), len,
                 reason);
         } else {
-            wifi_hal_info_print("%s:%d: interface:%s received deauth frame from:%s to:%s len:%d "
+            wifi_hal_info_print("%s:%d: Harsha interface:%s received deauth frame from:%s to:%s len:%d "
                                 "reason:%d\n",
                 __func__, __LINE__, interface->name, to_mac_str(mgmt->sa, sta_mac_str),
                 to_mac_str(mgmt->da, frame_da_str), len, reason);
@@ -2138,7 +2139,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
             if (callbacks->apDeAuthEvent_cb[i] != NULL) {
                 if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.deauth)) {
-                    wifi_hal_dbg_print("%s:%d handle_deauth - too short payload (len=%lu)",__func__, __LINE__, (unsigned long) len);
+                    wifi_hal_dbg_print("%s:%d Harsha handle_deauth - too short payload (len=%lu)",__func__, __LINE__, (unsigned long) len);
                     reasoncode = reason;
                 }
                 else {
@@ -2151,7 +2152,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
         pthread_mutex_lock(&g_wifi_hal.hapd_lock);
         station = ap_get_sta(&interface->u.ap.hapd, sta);
         if (station) {
-            wifi_hal_dbg_print("station deauthreason in deauth frame is %d\n",
+            wifi_hal_dbg_print("Harsha station deauthreason in deauth frame is %d\n",
                 station->disconnect_reason_code);
             ap_free_sta(&interface->u.ap.hapd, station);
         }
@@ -2161,7 +2162,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
             for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
                 bool frame_too_short = (len < IEEE80211_HDRLEN + sizeof(mgmt->u.disassoc));
                 if (frame_too_short) {
-                    wifi_hal_dbg_print("handle_disassoc - too short payload (len=%lu)\n",
+                    wifi_hal_dbg_print("Harsha handle_disassoc - too short payload (len=%lu)\n",
                         (unsigned long)len);
                     reasoncode = reason;
                 }
@@ -2180,7 +2181,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
                 }
             }
         } else {
-            wifi_hal_dbg_print("%s:%d: interface:%s sta %s not found\n", __func__, __LINE__,
+            wifi_hal_dbg_print("%s:%d: Harsha interface:%s sta %s not found\n", __func__, __LINE__,
                 interface->name, to_mac_str(sta, sta_mac_str));
         }
         if (callbacks->steering_event_callback != 0) {
@@ -2189,6 +2190,7 @@ int process_frame_mgmt(wifi_interface_info_t *interface, struct ieee80211_mgmt *
 #ifdef WIFI_EMULATOR_CHANGE
         send_mgmt_to_char_dev = true;
 #endif
+		wifi_hal_dbg_print("%s:%d: Harsha exit deauth \n", __func__, __LINE__);
         break;
 
 #if defined(EASY_MESH_NODE) && defined(_PLATFORM_BANANAPI_R4_)
@@ -10405,7 +10407,7 @@ static int wifi_sta_remove(wifi_interface_info_t *interface,
     mac_addr_str_t src_mac_str, dst_mac_str;
     int ret;
 
-    wifi_hal_info_print("%s:%d: interface:%s send %s from:%s to:%s reason:%d\n", __func__, __LINE__,
+    wifi_hal_info_print("%s:%d: Harsha interface:%s send %s from:%s to:%s reason:%d\n", __func__, __LINE__,
         interface->name, deauth ? "deauth" : "disassoc", to_mac_str(interface->mac, src_mac_str),
         to_mac_str(addr, dst_mac_str), reason_code);
 
@@ -10421,18 +10423,21 @@ static int wifi_sta_remove(wifi_interface_info_t *interface,
             (reason_code &&
             nla_put_u16(msg, NL80211_ATTR_REASON_CODE, reason_code))) {
         nlmsg_free(msg);
+		wifi_hal_dbg_print("%s:%d: Harsha returning -enobufs \n", __func__, __LINE__);
         return -ENOBUFS;
     }
 
     ret = nl80211_send_and_recv(msg, NULL, NULL, NULL, NULL);
     if (ret < 0) {
-        wifi_hal_error_print("%s:%d: failed to sent deauth/disassoc, error:%d (%s)\n", __func__,
+        wifi_hal_error_print("%s:%d: Harsha failed to sent deauth/disassoc, error:%d (%s)\n", __func__,
             __LINE__, ret, strerror(-ret));
     }
 
     if (ret == -ENOENT) {
+		 wifi_hal_dbg_print("%s:%d: Harsha return 0 \n", __func__, __LINE__);
         return 0;
     }
+	 wifi_hal_dbg_print("%s:%d: Harsha return ret \n", __func__, __LINE__);
     return ret;
 }
 
@@ -11434,11 +11439,11 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
     drv = &radio->driver_data;
     mac_addr_str_t mac_str;
 
-    wifi_hal_dbg_print("%s:%d: Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+    wifi_hal_dbg_print("%s:%d: Harsha Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 
 #if defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)
     wifi_device_callbacks_t *callbacks;
-
+    wifi_hal_dbg_print("%s:%d: Harsha raspi Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     callbacks = get_hal_device_callbacks();
 
     for (int i = 0; i < callbacks->num_disassoc_cbs; i++) {
@@ -11448,6 +11453,7 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
     }
 #endif // _PLATFORM_RASPBERRYPI_ || _PLATFORM_BANANAPI_R4_
     if (drv->device_ap_sme) {
+		wifi_hal_dbg_print("%s:%d: Harsha called wifi_sta_remove %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 0, reason);
     }
 
@@ -11458,16 +11464,22 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
     memcpy(mgmt.sa, own_addr, ETH_ALEN);
     memcpy(mgmt.bssid, own_addr, ETH_ALEN);
     mgmt.u.disassoc.reason_code = host_to_le16(reason);
+	wifi_hal_dbg_print("%s:%d: Harsha send mlme %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 #ifdef HOSTAPD_2_11 //2.11
+	wifi_hal_dbg_print("%s:%d: Harsha 2.11 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0, 0);
 #elif HOSTAPD_2_10 //2.10
+	wifi_hal_dbg_print("%s:%d: Harsha 2.10 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0);
 #else
+	wifi_hal_dbg_print("%s:%d: Harsha 2.9 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0);
 #endif
+	wifi_hal_dbg_print("%s:%d: Harsha Exit %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+	return 0;
 }
 
 
@@ -11479,7 +11491,7 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
     wifi_device_callbacks_t *callbacks;
     mac_addr_str_t mac_str;
 
-    wifi_hal_dbg_print("%s:%d: Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+    wifi_hal_dbg_print("%s:%d: Harsha Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 
     interface = (wifi_interface_info_t *)priv;
     vap = &interface->vap_info;
@@ -11488,6 +11500,7 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
 
     for (int i = 0; i < callbacks->num_apDeAuthEvent_cbs; i++) {
         if (callbacks->apDeAuthEvent_cb[i] != NULL) {
+			 wifi_hal_dbg_print("%s:%d: Harsha called deauth callbacks with mgmt type 5\n", __func__, __LINE__);
             callbacks->apDeAuthEvent_cb[i](vap->vap_index, to_mac_str(addr, mac_str), to_mac_str(addr, mac_str),5,reason);
         }
     }
@@ -11501,11 +11514,11 @@ int wifi_drv_sta_notify_deauth(void *priv, const u8 *own_addr, const u8 *addr, u
         steering_evt.data.authFail.bsBlocked = 0;
         steering_evt.data.authFail.bsBlocked = 0;
 
-        wifi_hal_dbg_print("%s:%d: Send Auth Fail steering event\n", __func__, __LINE__);
+        wifi_hal_dbg_print("%s:%d: Harsha Send Auth Fail steering event\n", __func__, __LINE__);
 
         callbacks->steering_event_callback(0, &steering_evt);
     }
-
+    wifi_hal_dbg_print("%s:%d: Harsha Exit \n", __func__, __LINE__);
     return 0;
 }
 
@@ -11526,7 +11539,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
     char country[8];
     mac_addr_str_t mac_str;
 
-    wifi_hal_dbg_print("%s:%d: Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+    wifi_hal_dbg_print("%s:%d: Harsha Enter %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 
     interface = (wifi_interface_info_t *)priv;
     vap = &interface->vap_info;
@@ -11542,6 +11555,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
           HOSTAPD_MODE_IEEE80211AD) {
         /* Deauthentication is not used in DMG/IEEE 802.11ad;
            * disassociate the STA instead. */
+		wifi_hal_dbg_print("%s:%d: Harsha called wifi_drv_sta_disassoc %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_drv_sta_disassoc(priv, own_addr, addr, reason);
     }
 #if 0
@@ -11557,6 +11571,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
     }
 #endif
     if (drv->device_ap_sme) {
+		wifi_hal_dbg_print("%s:%d: Harsha called wifi_sta_remove %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
         return wifi_sta_remove(interface, addr, 1, reason);
     }
 
@@ -11567,17 +11582,21 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
     memcpy(mgmt.sa, own_addr, ETH_ALEN);
     memcpy(mgmt.bssid, own_addr, ETH_ALEN);
     mgmt.u.deauth.reason_code = host_to_le16(reason);
-    wifi_hal_info_print("%s:%d: Send drv mlme: client mac:%s reason_code:%d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
+    wifi_hal_info_print("%s:%d: Harsha Send drv mlme: client mac:%s reason_code:%d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
 #ifdef HOSTAPD_2_11 //2.11
+	wifi_hal_dbg_print("%s:%d: Harsha 2.11 done %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0, 0, 0, 0);
 #elif HOSTAPD_2_10 //2.10
+	wifi_hal_dbg_print("%s:%d: Harsha 2.10 done %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0, 0, 0);
 #else
+	wifi_hal_dbg_print("%s:%d: Harsha 2.9 done %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                               IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0);
 #endif
+	wifi_hal_dbg_print("%s:%d: Harsha exit %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return 0;
 }
 
@@ -12233,7 +12252,7 @@ int wifi_drv_sta_remove(void *priv, const u8 *addr)
 
     interface = (wifi_interface_info_t *)priv;
 
-    wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
+    wifi_hal_dbg_print("%s:%d: Harsha Enter\n", __func__, __LINE__);
 
     return wifi_sta_remove(interface, addr, -1, 0);
 }
