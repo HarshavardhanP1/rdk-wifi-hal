@@ -15182,7 +15182,7 @@ int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
     return 0;
 }
 
-int    wifi_drv_send_radius_eap_failure(void *priv, int failure_code)
+int    wifi_drv_send_radius_eap_failure(void *priv, const u8 *addr, int failure_code)
 {
     wifi_interface_info_t *interface;
     wifi_vap_info_t *vap;
