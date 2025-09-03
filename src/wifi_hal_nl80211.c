@@ -16400,7 +16400,7 @@ int     wifi_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, int reas
     return 0;
 }
 
-int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
+/*int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
 {
     wifi_interface_info_t *interface;
     wifi_vap_info_t *vap;
@@ -16428,7 +16428,7 @@ int    wifi_drv_send_radius_eap_status(void *priv, const u8 *addr, int reason)
         }
     }
     return 0;
-}
+}*/
 
 int    wifi_drv_send_radius_eap_failure(void *priv, const u8 *addr, int failure_code)
 {
@@ -19347,7 +19347,7 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
 #endif // CONFIG_VENDOR_COMMANDS
 #if !defined(PLATFORM_LINUX)
     .radius_eap_failure = wifi_drv_send_radius_eap_failure,
-    .radius_eap_status = wifi_drv_send_radius_eap_status,
+    //.radius_eap_status = wifi_drv_send_radius_eap_status,
     .radius_fallback_failover = wifi_drv_send_radius_fallback_and_failover,
 #endif // CONFIG_VENDOR_COMMANDS
 #ifdef CMXB7_PORT
