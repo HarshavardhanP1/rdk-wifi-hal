@@ -72,7 +72,8 @@
 
 #if defined(SCXER10_PORT) && defined(CONFIG_IEEE80211BE)
 static bool l_eht_set = false;
-void (*g_eht_oneshot_notify)(wifi_interface_info_t *interface) = NULL;
+static int l_eht_interface_count = 0;
+bool (*g_eht_event_notify)(wifi_interface_info_t *interface) = NULL;
 
 /*
 If include secure_wrapper.h, will need to convert other system calls with v_secure_system calls
@@ -84,8 +85,9 @@ int v_secure_pclose(FILE *);
 
 static bool platform_radio_state(wifi_radio_index_t index);
 static bool platform_is_eht_enabled(wifi_radio_index_t index);
-static void platform_set_eht_hal_callback(wifi_interface_info_t *interface);
+static bool platform_set_eht_hal_callback(wifi_interface_info_t *interface);
 static void platform_wait_for_eht(void);
+static void platform_create_bss_states_string(wifi_radio_index_t index, char *cmd, size_t size);
 static void platform_set_eht(wifi_radio_index_t index, bool enable);
 #if defined(KERNEL_NO_320MHZ_SUPPORT)
 static void platform_csa_to_chanspec(struct csa_settings *settings, char *chspec);
@@ -3564,10 +3566,13 @@ static void platform_get_radio_caps_2g(wifi_radio_info_t *radio, wifi_interface_
     static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x22, 0x20, 0x02, 0xc0, 0x0f, 0x03, 0x95,
         0x18, 0x00, 0xcc, 0x00 };
 #endif // TCXB7_PORT || TCHCBRV2_PORT || SKYSR213_PORT
-#if defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined(SCXF10_PORT)
+#if defined(XB10_PORT)
+    static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x22, 0x20, 0x42, 0xc0, 0x02, 0x03, 0x95,
+        0x00, 0x00, 0xcc, 0x00 };
+#elif defined(TCXB8_PORT) || defined(SCXER10_PORT) || defined(SCXF10_PORT)
     static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x22, 0x20, 0x02, 0xc0, 0x02, 0x03, 0x95,
         0x00, 0x00, 0xcc, 0x00 };
-#endif // TCXB8_PORT || XB10_PORT || SCXER10_PORT || SCXF10_PORT
+#endif // TCXB8_PORT || SCXER10_PORT || SCXF10_PORT
 #if HOSTAPD_VERSION >= 211
     static const u8 eht_mcs[] = { 0x44, 0x44, 0x44 };
 #endif /* HOSTAPD_VERSION >= 211 */
@@ -3649,10 +3654,13 @@ static void platform_get_radio_caps_5g(wifi_radio_info_t *radio, wifi_interface_
     static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x4c, 0x20, 0x02, 0xc0, 0x6f, 0x1b, 0x95,
         0x18, 0x00, 0xcc, 0x00 };
 #endif // TCXB7_PORT || TCHCBRV2_PORT || SKYSR213_PORT
-#if defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || defined(SCXF10_PORT)
+#if defined(XB10_PORT)
+    static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x4c, 0x20, 0x42, 0xc0, 0x02, 0x1b, 0x95,
+        0x00, 0x00, 0xcc, 0x00 };
+#elif defined(TCXB8_PORT) || defined(SCXER10_PORT) || defined(SCXF10_PORT)
     static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x4c, 0x20, 0x02, 0xc0, 0x02, 0x1b, 0x95,
         0x00, 0x00, 0xcc, 0x00 };
-#endif // TCXB8_PORT
+#endif // TCXB8_PORT || SCXER10_PORT || SCXF10_PORT
 #if defined(SCXER10_PORT)
     static const u8 eht_phy_cap[EHT_PHY_CAPAB_LEN] = { 0x2c, 0x00, 0x1b, 0xe0, 0x00, 0xe7, 0x00,
         0x7e, 0x00 };
@@ -3742,8 +3750,13 @@ static void platform_get_radio_caps_6g(wifi_radio_info_t *radio, wifi_interface_
 #if defined(TCXB7_PORT) || defined(TCXB8_PORT) || defined(XB10_PORT) || defined(SCXER10_PORT) || \
     defined(SCXF10_PORT)
     static const u8 he_mac_cap[HE_MAX_MAC_CAPAB_SIZE] = { 0x05, 0x00, 0x18, 0x12, 0x00, 0x10 };
+#if defined(XB10_PORT)
+    static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x4c, 0x20, 0x42, 0xc0, 0x02, 0x1b, 0x95,
+        0x00, 0x00, 0xcc, 0x00 };
+#else
     static const u8 he_phy_cap[HE_MAX_PHY_CAPAB_SIZE] = { 0x4c, 0x20, 0x02, 0xc0, 0x02, 0x1b, 0x95,
         0x00, 0x00, 0xcc, 0x00 };
+#endif
     static const u8 he_mcs[HE_MAX_MCS_CAPAB_SIZE] = { 0xaa, 0xff, 0xaa, 0xff, 0xaa, 0xff, 0xaa,
         0xff };
     static const u8 he_ppet[HE_MAX_PPET_CAPAB_SIZE] = { 0x7b, 0x1c, 0xc7, 0x71, 0x1c, 0xc7, 0x71,
@@ -3896,10 +3909,13 @@ static bool platform_is_eht_enabled(wifi_radio_index_t index)
     return (eht[0] == '1') ? true : false;
 }
 
-static void platform_set_eht_hal_callback(wifi_interface_info_t *interface)
+bool platform_set_eht_hal_callback(wifi_interface_info_t *interface)
 {
     wifi_hal_dbg_print("%s:%d EHT completed for %s\n", __func__, __LINE__, interface->name);
-    l_eht_set = true;
+
+    l_eht_set = (--l_eht_interface_count <= 0) ? true : false;
+
+    return l_eht_set;
 }
 
 static void platform_wait_for_eht(void)
@@ -3916,6 +3932,18 @@ static void platform_wait_for_eht(void)
     return;
 }
 
+static void platform_create_bss_states_string(wifi_radio_index_t index, char *cmd, size_t size)
+{
+    int bss;
+    int len = 0;
+
+    memset(cmd, 0, size);
+    len = snprintf(cmd, size, "wl -i wl%d bss", index);
+    for (bss = 1; bss <= 7; bss++) {
+        len += snprintf(&cmd[len], size-len, "; wl -i wl%d.%d bss", index, bss);
+    }
+}
+
 static void platform_set_eht(wifi_radio_index_t index, bool enable)
 {
     bool eht_enabled;
@@ -3927,10 +3955,29 @@ static void platform_set_eht(wifi_radio_index_t index, bool enable)
         return;
     }
 
+    l_eht_interface_count = 0;
     radio_up = platform_radio_state(index);
     if (radio_up) {
+        FILE *fp;
+        char bss_state[16]={'\0'};
+        char cmd[256];
+
+        l_eht_interface_count = 0;
+        platform_create_bss_states_string(index, &cmd[0], sizeof(cmd));
+        fp = (FILE *)v_secure_popen("r", cmd);
+        if (fp) {
+            while (fgets(bss_state, sizeof(bss_state), fp)) {
+                if (!strncmp(bss_state, "up", 2)) {
+                    l_eht_interface_count++;
+                }
+            }
+            v_secure_pclose(fp);
+        }
+        wifi_hal_dbg_print("%s: total number of BSS up is %d\n", __func__, l_eht_interface_count);
+
         v_secure_system("wl -i wl%d down", index);
     }
+
     v_secure_system("wl -i wl%d eht %d", index, (enable) ? 1 : 0);
     v_secure_system("wl -i wl%d eht bssehtmode %d", index, (enable) ? 1 : 0);
     for (bss = 1; bss <= 7; bss++) {
@@ -3939,12 +3986,16 @@ static void platform_set_eht(wifi_radio_index_t index, bool enable)
     wifi_hal_dbg_print("%s: wl%d eht changed to %d\n", __func__, index, (enable == true) ? 1 : 0);
     if (radio_up) {
         l_eht_set = false;
-        g_eht_oneshot_notify = platform_set_eht_hal_callback;
-        v_secure_system("wl -i wl%d up", index);
-        platform_wait_for_eht();
+        if (l_eht_interface_count) {
+            g_eht_event_notify = platform_set_eht_hal_callback;
+            v_secure_system("wl -i wl%d up", index);
+            platform_wait_for_eht();
+        } else {
+            v_secure_system("wl -i wl%d up", index);
+        }
     }
 
-    g_eht_oneshot_notify = NULL;
+    g_eht_event_notify = NULL;
 
     return;
 }
