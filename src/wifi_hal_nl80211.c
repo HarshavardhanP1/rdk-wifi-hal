@@ -12297,7 +12297,7 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
 #ifdef HOSTAPD_2_11 //2.11
 	wifi_hal_dbg_print("%s:%d: Harsha 2.11 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
-                                IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0, 0);
+                                IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0, link_id);
 #elif HOSTAPD_2_10 //2.10
 	wifi_hal_dbg_print("%s:%d: Harsha 2.10 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
@@ -12424,7 +12424,7 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
 #ifdef HOSTAPD_2_11 //2.11
 	wifi_hal_dbg_print("%s:%d: Harsha 2.11 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
-                                IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0, 0, 0, 0);
+                                IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0, 0, 0, link_id);
 #elif HOSTAPD_2_10 //2.10
 	wifi_hal_dbg_print("%s:%d: Harsha 2.10 %s %d\n", __func__, __LINE__, to_mac_str(addr, mac_str), reason);
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
