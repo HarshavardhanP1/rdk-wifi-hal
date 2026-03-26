@@ -3128,6 +3128,12 @@ void recv_data_frame(wifi_interface_info_t *interface)
             if (entry)
                 entry->activity_mask |= RL_EAP_START;
         }
+        int eapol_type = is_eapol_m4((uint8_t *)hdr, buflen) ? 4 : 2;
+        int eapol_retry_counter = get_eapol_reply_counter((uint8_t *)hdr, buflen);
+        if (eapol_retry_counter >=4) {
+		    wifi_hal_info_print("%s:%d eapol_timeout callback is called \n", __func__, __LINE__);
+            wifi_drv_eapol_timeouts(interface, sta, eapol_type);
+        }
         pthread_mutex_lock(&g_wifi_hal.hapd_lock);
         if (interface->vap_info.vap_mode != wifi_vap_mode_ap || is_wifi_hal_vap_mesh_sta(interface->vap_info.vap_index)) {
 #if defined(BANANA_PI_PORT) && (HOSTAPD_VERSION >= 211)
@@ -13801,6 +13807,28 @@ int nl80211_tx_control_port(wifi_interface_info_t *interface, const u8 *dest,
     return nl80211_send_and_recv(msg, NULL, &g_wifi_hal, NULL, NULL);
 }
 
+void wifi_drv_eapol_timeouts(wifi_interface_info_t *interface, mac_address_t sta, int type)
+{
+    wifi_vap_info_t *vap;
+    mac_addr_str_t  sta_mac_str;
+    wifi_device_callbacks_t *callbacks;
+    if(interface == NULL) {
+        wifi_hal_error_print("%s:%d interface is null\n", __func__, __LINE__);
+        return;
+    }
+    vap = &interface->vap_info;
+    callbacks = get_hal_device_callbacks();
+    if (callbacks == NULL) {
+        wifi_hal_info_print("%s:%d callbacks is null \n", __func__, __LINE__);
+        return;
+    }
+
+    for (int i = 0; i < callbacks->num_eapol_timeouts_cbs; i++) {
+        if (callbacks->eapol_timeouts_cb[i] != NULL) {
+            callbacks->eapol_timeouts_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), type);
+        }
+    }
+}
 
 
 #if HOSTAPD_VERSION >= 211 //2.11
@@ -13818,6 +13846,7 @@ int wifi_drv_hapd_send_eapol(
     struct ieee8023_hdr *eth_hdr;
     wifi_interface_info_t *interface;
     wifi_vap_info_t *vap;
+	mac_address_t sta;
     mac_addr_str_t src_mac_str, dst_mac_str;
     int sock_fd;
     struct sockaddr_ll sockaddr;
@@ -13830,12 +13859,18 @@ int wifi_drv_hapd_send_eapol(
 #if HOSTAPD_VERSION < 211 // 2.11
     int link_id = -1;
 #endif // HOSTAPD_VERSION < 211
-
+    memcpy(sta, addr, sizeof(mac_address_t));
     wifi_hal_info_print(
         "%s:%d: from:%s to:%s interface:%s sending eapol m%d replay counter:%d link id:%d\n",
         __func__, __LINE__, to_mac_str(own_addr, src_mac_str), to_mac_str(addr, dst_mac_str),
         interface->name, is_eapol_m3(data, data_len) ? 3 : 1,
         get_eapol_reply_counter(data, data_len), link_id);
+    int eapol_type = is_eapol_m3(data, data_len) ? 3 : 1 ;
+    int eapol_retry_counter = get_eapol_reply_counter(data, data_len);
+    if (eapol_retry_counter >=4) {
+		wifi_hal_info_print("%s:%d eapol_timeout callback is called \n", __func__, __LINE__);
+        wifi_drv_eapol_timeouts(interface, sta, eapol_type);
+    }
 
     if (g_wifi_hal.platform_flags & PLATFORM_FLAGS_CONTROL_PORT_FRAME) {
         if ((ret = nl80211_tx_control_port(interface, addr, ETH_P_EAPOL, data, data_len, !encrypt,
