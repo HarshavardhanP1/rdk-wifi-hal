@@ -13822,7 +13822,15 @@ void wifi_drv_eapol_timeouts(wifi_interface_info_t *interface, mac_address_t sta
         wifi_hal_info_print("%s:%d callbacks is null \n", __func__, __LINE__);
         return;
     }
-
+    if (type == 2 || type == 4) {
+		type = EAPOL_MSG_M2;
+	}
+    if (type == 1) {
+		type = EAPOL_MSG_M1;
+	}
+    if (type == 3) {
+		type = EAPOL_MSG_M3;
+	}
     for (int i = 0; i < callbacks->num_eapol_timeouts_cbs; i++) {
         if (callbacks->eapol_timeouts_cb[i] != NULL) {
             callbacks->eapol_timeouts_cb[i](vap->vap_index, to_mac_str(sta, sta_mac_str), type);
