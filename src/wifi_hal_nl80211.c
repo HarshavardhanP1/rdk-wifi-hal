@@ -13875,7 +13875,7 @@ int wifi_drv_hapd_send_eapol(
         get_eapol_reply_counter(data, data_len), link_id);
     int eapol_type = is_eapol_m3(data, data_len) ? 3 : 1 ;
     int eapol_retry_counter = get_eapol_reply_counter(data, data_len);
-    if (eapol_retry_counter >=4) {
+    if ((eapol_retry_counter >=1 && eapol_retry_counter <=2) || (eapol_retry_counter >=4)) {
 		wifi_hal_info_print("%s:%d eapol_timeout callback is called \n", __func__, __LINE__);
         wifi_drv_eapol_timeouts(interface, sta, eapol_type);
     }
