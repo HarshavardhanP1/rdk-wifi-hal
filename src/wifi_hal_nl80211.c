@@ -1916,8 +1916,9 @@ static void diagnose_mgmt_frame(wifi_interface_info_t *interface,
 
     /* ── PROBE REQUEST ─────────────────────────────────────────────────── */
     case WLAN_FC_STYPE_PROBE_REQ: {
-        const u8 *ie = mgmt->u.probe_req.variable;
-        int ie_len   = (int)len - (int)(IEEE80211_HDRLEN + sizeof(mgmt->u.probe_req));
+        /* Probe-request frame body is IEs only — no fixed fields after the 802.11 header */
+        const u8 *ie = (const u8 *)(mgmt + 1);
+        int ie_len   = (int)len - (int)IEEE80211_HDRLEN;
         const u8 *ssid_ie = NULL;
         bool htcap = false, vhtcap = false;
 
@@ -3108,13 +3109,12 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
     const uint8_t *mic_ptr;
     size_t mic_len_estimate = 16; /* SHA1/AES-128-CMAC for WPA2-PSK */
     bool nonce_zero, rsc_zero, mic_present, key_data_nonzero;
-    bool install, ack, secure, error_bit, encr;
+    bool install, secure, error_bit, encr;
     int i, msg_num = 0;
     bool mic_bytes_zero;
     static uint8_t last_tx_replay[WPA_REPLAY_COUNTER_LEN]; /* last M1/M3 replay */
     static uint8_t last_rx_replay[WPA_REPLAY_COUNTER_LEN]; /* last M2/M4 replay */
     static bool    last_tx_valid = false;
-    static bool    last_rx_valid = false;
 
     if (data_len < sizeof(struct ieee802_1x_hdr) + sizeof(struct wpa_eapol_key))
         return; /* already guarded by parse_and_log_eapol_key */
@@ -3141,7 +3141,6 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
 
     /* ---- decode fields needed for diagnostics ---- */
     install        = !!(key_info & WPA_KEY_INFO_INSTALL);
-    ack            = !!(key_info & WPA_KEY_INFO_ACK);
     secure         = !!(key_info & WPA_KEY_INFO_SECURE);
     error_bit      = !!(key_info & WPA_KEY_INFO_ERROR);
     encr           = !!(key_info & WPA_KEY_INFO_ENCR_KEY_DATA);
@@ -3280,7 +3279,6 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
         /* track M2 replay counter for M3 retransmit detection */
         if (strcmp(direction, "RX") == 0) {
             memcpy(last_rx_replay, ek->replay_counter, WPA_REPLAY_COUNTER_LEN);
-            last_rx_valid = true;
         }
         wifi_hal_info_print(
             "  [M2 INFO] AP will now verify MIC (using PTK derived from PMK + "
