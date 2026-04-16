@@ -1916,8 +1916,8 @@ static void diagnose_mgmt_frame(wifi_interface_info_t *interface,
 
     /* ── PROBE REQUEST ─────────────────────────────────────────────────── */
     case WLAN_FC_STYPE_PROBE_REQ: {
-        /* Probe-request frame body is IEs only — no fixed fields after the 802.11 header */
-        const u8 *ie = (const u8 *)(mgmt + 1);
+        /* Probe-request has no fixed body fields; IEs start right at the union offset */
+        const u8 *ie = (const u8 *)&mgmt->u;
         int ie_len   = (int)len - (int)IEEE80211_HDRLEN;
         const u8 *ssid_ie = NULL;
         bool htcap = false, vhtcap = false;
@@ -2908,23 +2908,6 @@ static bool is_eapol_m4(uint8_t *data, size_t data_len)
     key_info_m4 = WPA_KEY_INFO_KEY_TYPE | WPA_KEY_INFO_MIC | WPA_KEY_INFO_SECURE;
 
     return (WPA_GET_BE16(eapol_key->key_info) & key_info_m4) == key_info_m4;
-}
-
-static int get_eapol_reply_counter(uint8_t *data, size_t data_len)
-{
-    struct wpa_eapol_key *eapol_key;
-    size_t min_eapol_len;
-
-    min_eapol_len = sizeof(struct ieee802_1x_hdr) + sizeof(struct wpa_eapol_key);
-    if (data_len < min_eapol_len) {
-        wifi_hal_dbg_print("%s:%d: eapol data len %zu is less than %zu\n", __func__, __LINE__,
-            data_len, min_eapol_len);
-        return -1;
-    }
-
-    eapol_key = (struct wpa_eapol_key *)(data + sizeof(struct ieee802_1x_hdr));
-
-    return eapol_key->replay_counter[WPA_REPLAY_COUNTER_LEN - 1];
 }
 
 /*
