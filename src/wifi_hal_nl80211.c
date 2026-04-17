@@ -14456,6 +14456,17 @@ int wifi_drv_hapd_send_eapol(
         to_mac_str(own_addr, src_mac_str),
         to_mac_str(addr, dst_mac_str),
         (uint8_t *)data, data_len);
+    if (hdr && hdr->type == IEEE802_1X_TYPE_EAPOL_KEY) {
+         struct wpa_eapol_key *ekey = (struct wpa_eapol_key *)(hdr + 1);
+         u16 kinfo = WPA_GET_BE16(ekey->key_info);
+         /* M1: ACK=1, MIC=0; M3: ACK=1, MIC=1, INSTALL=1 */
+         if ((kinfo & WPA_KEY_INFO_ACK) && !(kinfo & WPA_KEY_INFO_MIC)) {
+              /* This is M1 — extract replay counter LSB as sequence indicator */
+              u8 rc_lsb = ekey->replay_counter[7];
+              wifi_hal_info_print("[EAPOL-TX-CTR] M1 replay_ctr_lsb=0x%02x "
+                            "(retransmit if same LSB as previous M1 to this STA)\n", rc_lsb);
+         }
+    }
     diagnose_eapol_frame("TX", interface->name,
         to_mac_str(own_addr, src_mac_str),
         to_mac_str(addr, dst_mac_str),
