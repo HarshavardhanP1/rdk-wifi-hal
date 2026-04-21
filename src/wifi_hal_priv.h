@@ -1477,4 +1477,9 @@ int wifi_hal_get_mac_address(const char *ifname, mac_address_t mac);
 unsigned int get_band_info_from_rdk_radio_index(unsigned int rdk_radio_index);
 int get_backhaul_sta_ifname_from_radio_index(wifi_radio_index_t index, char *ifname_out,
     size_t ifname_out_len);
+
+void diagnose_mgmt_frame(wifi_interface_info_t *interface,
+                         struct ieee80211_mgmt *mgmt,
+                         unsigned int len, int sig_dbm,
+                         u16 stype, wifi_direction_t dir);
 #endif // WIFI_HAL_PRIV_H
