@@ -1900,10 +1900,10 @@ static bool is_wifi_hal_rate_limit_block(unsigned short stype, mac_address_t mac
  * diagnose_eapol_frame() after the data-frame RX path separates EtherType 0x888E.
  * =========================================================================
  */
-static void diagnose_mgmt_frame(wifi_interface_info_t *interface,
-                                struct ieee80211_mgmt *mgmt,
-                                unsigned int len, int sig_dbm,
-                                u16 stype, wifi_direction_t dir)
+void diagnose_mgmt_frame(wifi_interface_info_t *interface,
+                         struct ieee80211_mgmt *mgmt,
+                         unsigned int len, int sig_dbm,
+                         u16 stype, wifi_direction_t dir)
 {
     mac_addr_str_t sta_str, ap_str;
     const char *ifname = interface->name;
@@ -2087,6 +2087,131 @@ static void diagnose_mgmt_frame(wifi_interface_info_t *interface,
             wifi_hal_info_print("[FRAME-DIAG][%s][WARN] %s: rssi=%d dBm — weak signal, "
                                 "expect rate instability after connect\n",
                                 is_reassoc ? "REASSOC_REQ" : "ASSOC_REQ", sta_str, sig_dbm);
+        break;
+    }
+
+    /* ── PROBE RESPONSE ─────────────────────────────────────────────────── */
+    case WLAN_FC_STYPE_PROBE_RESP: {
+        if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.probe_resp)) {
+            wifi_hal_info_print("[FRAME-DIAG][PROBE_RESP][WARN] %s<-%s: frame too short\n",
+                                sta_str, ap_str);
+            break;
+        }
+        /* probe_resp has same layout as beacon: timestamp(8)+beacon_int(2)+capab_info(2)+IEs */
+        const u8 *ie    = mgmt->u.probe_resp.variable;
+        int       ie_len = (int)len - (int)(IEEE80211_HDRLEN + sizeof(mgmt->u.probe_resp));
+        char ssid_buf[33] = "<hidden>";
+        bool has_rsn = false, has_wpa = false, has_htcap = false, has_vhtcap = false;
+        bool has_he = false;
+
+        for (int pos = 0; pos + 1 < ie_len; ) {
+            u8 eid  = ie[pos];
+            u8 elen = ie[pos + 1];
+            if (pos + 2 + elen > ie_len) break;
+            if (eid == WLAN_EID_SSID && elen <= 32) {
+                memcpy(ssid_buf, ie + pos + 2, elen);
+                ssid_buf[elen] = '\0';
+            }
+            if (eid == WLAN_EID_RSN)             has_rsn   = true;
+            if (eid == WLAN_EID_VENDOR_SPECIFIC &&
+                elen >= 4 && ie[pos+2] == 0x00 &&
+                ie[pos+3] == 0x50 && ie[pos+4] == 0xf2 &&
+                ie[pos+5] == 0x01)               has_wpa   = true;
+            if (eid == WLAN_EID_HT_CAP)          has_htcap  = true;
+            if (eid == WLAN_EID_VHT_CAP)         has_vhtcap = true;
+            if (eid == WLAN_EID_EXTENSION)       has_he     = true; /* HE caps ext tag */
+            pos += 2 + elen;
+        }
+        wifi_hal_info_print("[FRAME-DIAG][PROBE_RESP][INFO] %s<-%s: iface=%s ssid=\"%s\" "
+                            "RSN=%d WPA=%d HT=%d VHT=%d HE=%d\n",
+                            sta_str, ap_str, ifname, ssid_buf,
+                            has_rsn, has_wpa, has_htcap, has_vhtcap, has_he);
+        if (!has_rsn && !has_wpa)
+            wifi_hal_info_print("[FRAME-DIAG][PROBE_RESP][WARN] AP is advertising an open "
+                                "network (no RSN/WPA IE) — STA may refuse to connect if it "
+                                "requires security\n");
+        break;
+    }
+
+    /* ── ASSOC RESPONSE / REASSOC RESPONSE ─────────────────────────────── */
+    case WLAN_FC_STYPE_ASSOC_RESP:
+    case WLAN_FC_STYPE_REASSOC_RESP: {
+        bool is_reassoc = (stype == WLAN_FC_STYPE_REASSOC_RESP);
+        if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.assoc_resp)) {
+            wifi_hal_info_print("[FRAME-DIAG][%s][WARN] %s<-%s: frame too short\n",
+                                is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP",
+                                sta_str, ap_str);
+            break;
+        }
+        u16 capab  = le_to_host16(mgmt->u.assoc_resp.capab_info);
+        u16 status = le_to_host16(mgmt->u.assoc_resp.status_code);
+        u16 aid    = le_to_host16(mgmt->u.assoc_resp.aid) & 0x3FFF; /* mask TIM bits */
+        const u8 *ie     = mgmt->u.assoc_resp.variable;
+        int       ie_len = (int)len - (int)(IEEE80211_HDRLEN + sizeof(mgmt->u.assoc_resp));
+
+        /* parse IEs to check if AP confirmed RSN/rates */
+        bool has_rsn = false, has_htcap = false, has_vhtcap = false, has_he = false;
+        for (int pos = 0; pos + 1 < ie_len; ) {
+            u8 eid  = ie[pos];
+            u8 elen = ie[pos + 1];
+            if (pos + 2 + elen > ie_len) break;
+            if (eid == WLAN_EID_RSN)       has_rsn    = true;
+            if (eid == WLAN_EID_HT_CAP)    has_htcap  = true;
+            if (eid == WLAN_EID_VHT_CAP)   has_vhtcap = true;
+            if (eid == WLAN_EID_EXTENSION)  has_he     = true;
+            pos += 2 + elen;
+        }
+
+        /* status code meaning */
+        const char *status_str =
+            status ==  0 ? "Success"                          :
+            status ==  1 ? "Unspecified-failure"              :
+            status == 10 ? "Caps-unsupported"                 :
+            status == 11 ? "Reassoc-denied-no-prior-assoc"    :
+            status == 12 ? "Assoc-denied-unspecified"         :
+            status == 13 ? "Auth-alg-not-supported"           :
+            status == 17 ? "AP-cannot-handle-more-STAs"       :
+            status == 18 ? "Assoc-denied-basic-rates-missing" :
+            status == 27 ? "Assoc-denied-no-HT"               :
+            status == 30 ? "Assoc-rejected-temporarily"       :
+            status == 37 ? "Request-declined"                 :
+            status == 41 ? "Group-cipher-invalid"             :
+            status == 42 ? "Pairwise-cipher-invalid"          :
+            status == 43 ? "AKMP-invalid"                     :
+            status == 44 ? "Unsupported-RSN-IE-version"       :
+            status == 45 ? "Invalid-RSN-IE-capab"             :
+            status == 46 ? "Cipher-rejected-per-policy"       : "Other";
+
+        if (status == WLAN_STATUS_SUCCESS) {
+            wifi_hal_info_print("[FRAME-DIAG][%s][SUCCESS] %s<-%s: iface=%s "
+                                "status=0 aid=%u capab=0x%04x "
+                                "RSN=%d HT=%d VHT=%d HE=%d — "
+                                "STA is now associated, 4-Way Handshake will follow\n",
+                                is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP",
+                                sta_str, ap_str, ifname,
+                                aid, capab, has_rsn, has_htcap, has_vhtcap, has_he);
+        } else {
+            wifi_hal_info_print("[FRAME-DIAG][%s][FAIL] %s<-%s: iface=%s "
+                                "status=%u (%s) capab=0x%04x — "
+                                "STA rejected, no 4-Way Handshake will follow\n",
+                                is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP",
+                                sta_str, ap_str, ifname,
+                                status, status_str, capab);
+            /* specific hints per rejection reason */
+            if (status == 17)
+                wifi_hal_info_print("[FRAME-DIAG][%s][HINT] status=17: AP at capacity — "
+                                    "max_num_sta limit reached in hostapd config\n",
+                                    is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP");
+            if (status == 41 || status == 42 || status == 43)
+                wifi_hal_info_print("[FRAME-DIAG][%s][HINT] status=%u: cipher/AKM mismatch — "
+                                    "STA's RSN IE requested algo that AP does not support or "
+                                    "policy forbids\n",
+                                    is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP", status);
+            if (status == 30)
+                wifi_hal_info_print("[FRAME-DIAG][%s][HINT] status=30: AP temporarily full — "
+                                    "STA should retry after backoff interval in the resp frame\n",
+                                    is_reassoc ? "REASSOC_RESP" : "ASSOC_RESP");
+        }
         break;
     }
 
@@ -3098,6 +3223,13 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
     static uint8_t last_tx_replay[WPA_REPLAY_COUNTER_LEN]; /* last M1/M3 replay */
     static uint8_t last_rx_replay[WPA_REPLAY_COUNTER_LEN]; /* last M2/M4 replay */
     static bool    last_tx_valid = false;
+    /* retransmit / timeout tracking */
+    static uint8_t prev_m1_lsb = 0;   /* LSB of previous M1 TX replay_counter */
+    static uint8_t prev_m3_lsb = 0;   /* LSB of previous M3 TX replay_counter */
+    static bool    m2_seen_after_m1 = false; /* did we receive M2 since last M1 TX? */
+    static bool    m4_seen_after_m3 = false; /* did we receive M4 since last M3 TX? */
+    static uint32_t m1_tx_count = 0;  /* total M1 sends for this handshake */
+    static uint32_t m3_tx_count = 0;  /* total M3 sends for this handshake */
 
     if (data_len < sizeof(struct ieee802_1x_hdr) + sizeof(struct wpa_eapol_key))
         return; /* already guarded by parse_and_log_eapol_key */
@@ -3163,37 +3295,76 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
      *   - zero key_len: AP not advertising a cipher key length
      * ================================================================ */
     case 1:
+        if (strcmp(direction, "TX") == 0) {
+            uint8_t cur_lsb = ek->replay_counter[WPA_REPLAY_COUNTER_LEN - 1];
+
+            if (m1_tx_count == 0) {
+                /* very first M1 of this handshake — reset all tracking */
+                m1_tx_count   = 1;
+                m3_tx_count   = 0;
+                m2_seen_after_m1 = false;
+                m4_seen_after_m3 = false;
+                wifi_hal_info_print(
+                    "  [M1 SEND #1] replay_counter LSB=0x%02x – "
+                    "first M1, new handshake started.\n", cur_lsb);
+            } else {
+                m1_tx_count++;
+                /* If we are sending another M1 without having seen an M2,
+                 * a timeout fired inside hostapd (wpa_send_eapol_timeout).
+                 * The replay_counter incremented by 1 confirms it. */
+                if (!m2_seen_after_m1) {
+                    uint8_t expected_lsb = (uint8_t)(prev_m1_lsb + 1);
+                    if (cur_lsb == expected_lsb)
+                        wifi_hal_info_print(
+                            "  [M1 RETRANSMIT #%u] replay_counter LSB 0x%02x→0x%02x – "
+                            "TIMEOUT fired (wpa_send_eapol_timeout), no M2 received. "
+                            "TimeoutCtr=%u / wpa_pairwise_update_count=4. "
+                            "If TimeoutCtr reaches 4 → DEAUTH reason=15.\n",
+                            m1_tx_count, prev_m1_lsb, cur_lsb, m1_tx_count);
+                    else
+                        wifi_hal_info_print(
+                            "  [M1 RETRANSMIT #%u] replay_counter LSB=0x%02x "
+                            "(jumped from 0x%02x, counter wrap or multi-BSS). "
+                            "No M2 seen → timeout inferred.\n",
+                            m1_tx_count, cur_lsb, prev_m1_lsb);
+                } else {
+                    /* M2 was seen but something caused a new M1 — PTKCALCNEG
+                     * failed (wrong PSK, MIC mismatch) → hostapd re-entered
+                     * PTKSTART (wpa_auth.c SM_STEP PTKCALCNEGOTIATING branch). */
+                    wifi_hal_info_print(
+                        "  [M1 RESEND #%u] replay_counter LSB=0x%02x – "
+                        "M2 was received but MIC verification FAILED "
+                        "(wrong PSK / bad SNonce). hostapd re-entered PTKSTART "
+                        "(wpa_auth.c:3841 SM_ENTER PTKSTART on TimeoutEvt after "
+                        "PTKCALCNEGOTIATING silent drop). "
+                        "TimeoutCtr=%u / 4. Next → DEAUTH reason=15 if limit hit.\n",
+                        m1_tx_count, cur_lsb, m1_tx_count);
+                }
+                m2_seen_after_m1 = false; /* reset for this new M1 */
+            }
+            prev_m1_lsb = cur_lsb;
+            memcpy(last_tx_replay, ek->replay_counter, WPA_REPLAY_COUNTER_LEN);
+            last_tx_valid = true;
+        }
+
         if (error_bit)
             wifi_hal_info_print(
-                "  [M1 FAIL] ERROR bit set – AP reporting MIC/TKIP failure. "
-                "Reason: STA previously sent a bad MIC or TKIP reported Michael failure.\n");
+                "  [M1 FAIL] ERROR bit set – AP reporting MIC/TKIP failure.\n");
         else
             wifi_hal_info_print("  [M1 OK]  ERROR bit clear.\n");
 
         if (nonce_zero)
             wifi_hal_info_print(
-                "  [M1 FAIL] ANonce is all-zeroes – AP random number generator produced "
-                "a weak nonce. The handshake will be insecure or fail.\n");
+                "  [M1 FAIL] ANonce is all-zeroes – AP RNG produced a weak nonce.\n");
         else
             wifi_hal_info_print("  [M1 OK]  ANonce is non-zero (good entropy).\n");
 
         if (WPA_GET_BE16(ek->key_length) == 0)
             wifi_hal_info_print(
-                "  [M1 WARN] key_length field = 0 – AP not signalling a key length. "
-                "Some legacy STAs may reject this.\n");
+                "  [M1 WARN] key_length field = 0 – some legacy STAs may reject.\n");
         else
             wifi_hal_info_print(
                 "  [M1 OK]  key_length = %u\n", WPA_GET_BE16(ek->key_length));
-
-        /* track this TX replay counter so we can check M2 matches it */
-        if (strcmp(direction, "TX") == 0) {
-            memcpy(last_tx_replay, ek->replay_counter, WPA_REPLAY_COUNTER_LEN);
-            last_tx_valid = true;
-        }
-        wifi_hal_info_print(
-            "  [M1 INFO] AP is initiating 4-Way Handshake. "
-            "If no M2 is received within ~1 s the AP will retransmit "
-            "(default 3 retries → WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT=15).\n");
         break;
 
     /* ================================================================
@@ -3259,14 +3430,16 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
                 wifi_hal_info_print(
                     "  [M2 OK]  replay_counter matches M1 – AP will accept.\n");
         }
-        /* track M2 replay counter for M3 retransmit detection */
+        /* track M2 replay counter; mark that M2 was seen after last M1 */
         if (strcmp(direction, "RX") == 0) {
             memcpy(last_rx_replay, ek->replay_counter, WPA_REPLAY_COUNTER_LEN);
+            m2_seen_after_m1 = true;   /* tells M1 retransmit logic: M2 arrived */
+            wifi_hal_info_print(
+                "  [M2 INFO] M2 received – AP will now verify MIC "
+                "(PTK = PRF(PMK, ANonce, SNonce, AP_MAC, STA_MAC) with KCK). "
+                "If MIC valid → PTKCALCNEGOTIATING2 → M3 sent. "
+                "If MIC invalid → silent drop, timer fires, M1 retransmitted.\n");
         }
-        wifi_hal_info_print(
-            "  [M2 INFO] AP will now verify MIC (using PTK derived from PMK + "
-            "ANonce + SNonce). If MIC is wrong → Deauth "
-            "\"received EAPOL-Key with invalid MIC\".\n");
         break;
 
     /* ================================================================
@@ -3280,9 +3453,43 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
      *   - ERROR bit set   : AP reporting MIC failure (should never happen in M3)
      * ================================================================ */
     case 3:
-        wifi_hal_info_print(
-            "  [M3 INFO] AP sent M3 – this means AP successfully verified "
-            "M2's MIC and PTKs match. AP is now installing the TK.\n");
+        if (strcmp(direction, "TX") == 0) {
+            uint8_t cur_lsb = ek->replay_counter[WPA_REPLAY_COUNTER_LEN - 1];
+
+            if (m3_tx_count == 0) {
+                m3_tx_count = 1;
+                m4_seen_after_m3 = false;
+                wifi_hal_info_print(
+                    "  [M3 SEND #1] replay_counter LSB=0x%02x – "
+                    "M2 MIC verified OK, first M3 sent. PTK derived and valid.\n",
+                    cur_lsb);
+            } else {
+                m3_tx_count++;
+                if (!m4_seen_after_m3) {
+                    uint8_t expected_lsb = (uint8_t)(prev_m3_lsb + 1);
+                    if (cur_lsb == expected_lsb)
+                        wifi_hal_info_print(
+                            "  [M3 RETRANSMIT #%u] replay_counter LSB 0x%02x→0x%02x – "
+                            "TIMEOUT fired (wpa_send_eapol_timeout), no M4 received. "
+                            "TimeoutCtr=%u / wpa_pairwise_update_count=4. "
+                            "If TimeoutCtr reaches 4 → DEAUTH reason=15.\n",
+                            m3_tx_count, prev_m3_lsb, cur_lsb, m3_tx_count);
+                    else
+                        wifi_hal_info_print(
+                            "  [M3 RETRANSMIT #%u] LSB=0x%02x (jumped from 0x%02x). "
+                            "No M4 seen → timeout inferred.\n",
+                            m3_tx_count, cur_lsb, prev_m3_lsb);
+                }
+                m4_seen_after_m3 = false;
+            }
+            prev_m3_lsb = cur_lsb;
+            memcpy(last_tx_replay, ek->replay_counter, WPA_REPLAY_COUNTER_LEN);
+            last_tx_valid = true;
+        } else {
+            wifi_hal_info_print(
+                "  [M3 INFO] AP sent M3 – M2 MIC verified OK by AP. "
+                "AP is installing PTK TK into driver now.\n");
+        }
 
         if (!install)
             wifi_hal_info_print(
@@ -3377,11 +3584,26 @@ static void diagnose_eapol_frame(const char *direction, const char *ifname,
                     "  [M4 OK]  replay_counter matches M3.\n");
         }
 
-        if (!error_bit && mic_present && !mic_bytes_zero)
-            wifi_hal_info_print(
-                "  [M4 SUCCESS] AP will verify MIC. If valid → state=PTKINITDONE, "
-                "PTK installed in kernel (NL80211_CMD_NEW_KEY), "
-                "station marked NL80211_STA_FLAG_AUTHORIZED, data path opens.\n");
+        if (strcmp(direction, "RX") == 0) {
+            m4_seen_after_m3 = true;
+            /* Successful M4: reset all handshake counters for next association */
+            if (!error_bit && mic_present && !mic_bytes_zero) {
+                wifi_hal_info_print(
+                    "  [M4 SUCCESS] M4 received with valid bits. "
+                    "AP verifying MIC now → if OK: state=PTKINITDONE, "
+                    "PTK installed (NL80211_CMD_NEW_KEY), "
+                    "STA authorized (NL80211_STA_FLAG_AUTHORIZED), "
+                    "data path open. Total M1 sends=%u, M3 sends=%u.\n",
+                    m1_tx_count, m3_tx_count);
+                /* reset for next handshake */
+                m1_tx_count = 0;
+                m3_tx_count = 0;
+                m2_seen_after_m1 = false;
+                m4_seen_after_m3 = false;
+                prev_m1_lsb = 0;
+                prev_m3_lsb = 0;
+            }
+        }
         break;
 
     default:
@@ -14456,15 +14678,6 @@ int wifi_drv_hapd_send_eapol(
         to_mac_str(own_addr, src_mac_str),
         to_mac_str(addr, dst_mac_str),
         (uint8_t *)data, data_len);
-    /*if (hdr && hdr->type == IEEE802_1X_TYPE_EAPOL_KEY) {
-         struct wpa_eapol_key *ekey = (struct wpa_eapol_key *)(hdr + 1);
-         u16 kinfo = WPA_GET_BE16(ekey->key_info);
-         if ((kinfo & WPA_KEY_INFO_ACK) && !(kinfo & WPA_KEY_INFO_MIC)) {
-              u8 rc_lsb = ekey->replay_counter[7];
-              wifi_hal_info_print("[EAPOL-TX-CTR] M1 replay_ctr_lsb=0x%02x "
-                            "(retransmit if same LSB as previous M1 to this STA)\n", rc_lsb);
-         }
-    }*/
     diagnose_eapol_frame("TX", interface->name,
         to_mac_str(own_addr, src_mac_str),
         to_mac_str(addr, dst_mac_str),
