@@ -452,6 +452,9 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
         switch(event.tx_status.stype) {
          case WLAN_FC_STYPE_AUTH:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_AUTH_RSP;
+            diagnose_mgmt_frame(interface, (struct ieee80211_mgmt *)event.tx_status.data,
+                                event.tx_status.data_len, sig_dbm,
+                                WLAN_FC_STYPE_AUTH, dir);
 
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
@@ -465,6 +468,9 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             mgmt_type = WIFI_MGMT_FRAME_TYPE_ASSOC_RSP;
             wifi_hal_dbg_print("%s:%d: Received assoc response frame from: %s\n", __func__, __LINE__,
                            to_mac_str(sta, sta_mac_str));
+            diagnose_mgmt_frame(interface, (struct ieee80211_mgmt *)event.tx_status.data,
+                                event.tx_status.data_len, sig_dbm,
+                                WLAN_FC_STYPE_ASSOC_RESP, dir);
 
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
@@ -480,6 +486,9 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
             mgmt_type = WIFI_MGMT_FRAME_TYPE_REASSOC_RSP;
             wifi_hal_dbg_print("%s:%d: Received Reassoc response frame from: %s\n", __func__, __LINE__,
                            to_mac_str(sta, sta_mac_str));
+            diagnose_mgmt_frame(interface, (struct ieee80211_mgmt *)event.tx_status.data,
+                                event.tx_status.data_len, sig_dbm,
+                                WLAN_FC_STYPE_REASSOC_RESP, dir);
 
             for (int i = 0; i < callbacks->num_statuscode_cbs; i++) {
                 if (callbacks->statuscode_cb[i] != NULL) {
@@ -580,6 +589,9 @@ static void nl80211_frame_tx_status_event(wifi_interface_info_t *interface, stru
 
         case WLAN_FC_STYPE_PROBE_RESP:
             mgmt_type = WIFI_MGMT_FRAME_TYPE_PROBE_RSP;
+            diagnose_mgmt_frame(interface, (struct ieee80211_mgmt *)event.tx_status.data,
+                                event.tx_status.data_len, sig_dbm,
+                                WLAN_FC_STYPE_PROBE_RESP, dir);
             break;
 
         case WLAN_FC_STYPE_ACTION:
